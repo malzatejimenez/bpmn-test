@@ -79,7 +79,6 @@
 	let error = $state<string | null>(null);
 	let autoLayoutEnabled = $state(false);
 	let modoEdicion = $state(false);
-	let modelerRef = $state<any>(null);
 	let currentXml = $state<string | null>(null); // Guardar XML actual para preservar cambios
 
 	// Parsear y actualizar el flujo
@@ -167,22 +166,6 @@
 		actualizarFlujo();
 	}
 
-	// Aplicar auto-layout avanzado al diagrama actual
-	async function aplicarAutoLayout() {
-		if (!modelerRef) return;
-
-		try {
-			const xmlActual = await modelerRef.exportXML();
-			if (!xmlActual) return;
-
-			const xmlConLayout = await bpmnBuilder.applyAdvancedLayout(xmlActual);
-			await modelerRef.loadDiagramXML(xmlConLayout);
-		} catch (err) {
-			console.error('Error aplicando auto-layout:', err);
-			error = 'Error al aplicar auto-layout';
-		}
-	}
-
 	// Manejar cambios en el diagrama cuando está en modo edición
 	function handleDiagramChange(xml: string) {
 		// Guardar XML actualizado para preservar cambios
@@ -249,9 +232,6 @@
 			<div class="panel-header">
 				<h2>{modoEdicion ? '✏️ Editor Visual' : '👁️ Vista Previa'}</h2>
 				<div class="header-actions">
-					<button onclick={aplicarAutoLayout} class="btn-secondary" disabled={!flujoActual}>
-						🎯 Auto-organizar
-					</button>
 					<label class="mode-toggle">
 						<input type="checkbox" bind:checked={modoEdicion} />
 						<span class="toggle-label">{modoEdicion ? '🔓 Edición' : '🔒 Solo lectura'}</span>
@@ -262,7 +242,6 @@
 			<div class="viewer-container">
 				{#if flujoActual || currentXml}
 					<BpmnModeler
-						bind:this={modelerRef}
 						flowDefinition={currentXml ? undefined : flujoActual}
 						xml={currentXml}
 						class="preview-viewer"

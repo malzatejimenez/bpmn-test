@@ -10,7 +10,6 @@ This project includes a complete BPMN 2.0 visualizer built with SvelteKit 5. The
 ✅ **BPMN 2.0 Compliant** - Generates valid BPMN 2.0 XML
 ✅ **Interactive Viewer & Editor** - Built on bpmn-js for professional rendering
 ✅ **Drag & Drop Editing** - Full modeler capabilities with visual editing
-✅ **Intelligent Auto-Layout** - Advanced connection routing that minimizes overlaps
 ✅ **Edit/Read-Only Toggle** - Switch between viewing and editing modes
 ✅ **Manhattan Routing** - Automatic orthogonal connection layout
 ✅ **Internationalization** - Full i18n support (English/Spanish) via Paraglide.js
@@ -59,7 +58,6 @@ This project includes a complete BPMN 2.0 visualizer built with SvelteKit 5. The
    - Interactive flow builder with code editor
    - Live preview with BpmnModeler
    - Edit/readonly mode toggle
-   - Advanced auto-layout button
    - Example flow templates
    - Real-time diagram updates
 
@@ -167,12 +165,6 @@ const xml = await bpmnBuilder.buildXML(myFlow);
   function handleChange(xml: string) {
     console.log('Diagram modified:', xml);
   }
-
-  async function applyAutoLayout() {
-    const currentXml = await modeler.exportXML();
-    const layoutedXml = await bpmnBuilder.applyAdvancedLayout(currentXml);
-    await modeler.loadDiagramXML(layoutedXml);
-  }
 </script>
 
 <BpmnModeler
@@ -185,36 +177,18 @@ const xml = await bpmnBuilder.buildXML(myFlow);
 <button onclick={() => isEditable = !isEditable}>
   Toggle Edit Mode
 </button>
-<button onclick={applyAutoLayout}>
-  Auto-organize
-</button>
 ```
 
 ### Auto-layout
-
-Two auto-layout options are available:
 
 **Basic Auto-layout (BFS-based)**
 ```typescript
 const layoutedFlow = bpmnBuilder.autoLayout(myFlow);
 ```
-Uses breadth-first search to position nodes in a left-to-right flow.
+Uses breadth-first search to position nodes in a left-to-right flow. This is useful when defining flows programmatically to provide reasonable default positions.
 
-**Advanced Auto-layout (bpmn-auto-layout)**
-```typescript
-const xml = await bpmnBuilder.buildXML(myFlow);
-const layoutedXml = await bpmnBuilder.applyAdvancedLayout(xml);
-```
-Uses the `bpmn-auto-layout` library for intelligent positioning with:
-- Manhattan routing algorithm for connections
-- Optimal element spacing
-- Minimized connection overlaps
-- Automatic waypoint generation
-
-**Build with Auto-layout**
-```typescript
-const layoutedXml = await bpmnBuilder.buildXMLWithAutoLayout(myFlow);
-```
+**Manhattan Routing**
+The BpmnModeler component automatically uses Manhattan routing (orthogonal connections) provided by diagram-js. This creates clean horizontal/vertical connection paths that minimize overlaps without any additional configuration.
 
 ## Supported BPMN Elements
 
@@ -253,12 +227,6 @@ class BpmnBuilder {
 
   // Auto-position nodes in the flow (basic BFS algorithm)
   autoLayout(flowDefinition: BPMNFlowDefinition): BPMNFlowDefinition
-
-  // Apply advanced auto-layout to XML
-  async applyAdvancedLayout(xml: string): Promise<string>
-
-  // Build XML with advanced auto-layout applied
-  async buildXMLWithAutoLayout(flowDefinition: BPMNFlowDefinition): Promise<string>
 }
 ```
 
