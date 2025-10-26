@@ -1,4 +1,5 @@
 import BpmnModdle from 'bpmn-moddle';
+import { layoutProcess } from 'bpmn-auto-layout';
 import type {
 	BPMNFlowDefinition,
 	BPMNNode,
@@ -24,6 +25,27 @@ export class BpmnBuilder {
 		const definitions = this.createDefinitions(flowDefinition);
 		const result = await this.moddle.toXML(definitions, { format: true });
 		return result.xml;
+	}
+
+	/**
+	 * Apply advanced auto-layout using bpmn-auto-layout library
+	 * This generates optimal positioning for all elements and connections
+	 */
+	async applyAdvancedLayout(xml: string): Promise<string> {
+		try {
+			return await layoutProcess(xml);
+		} catch (error) {
+			console.error('Error applying advanced layout:', error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Build XML with advanced auto-layout applied
+	 */
+	async buildXMLWithAutoLayout(flowDefinition: BPMNFlowDefinition): Promise<string> {
+		const xml = await this.buildXML(flowDefinition);
+		return await this.applyAdvancedLayout(xml);
 	}
 
 	/**

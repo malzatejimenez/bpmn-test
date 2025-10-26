@@ -47,6 +47,7 @@
 		"vitest-browser-svelte": "^1.1.0"
 	},
 	"dependencies": {
+		"bpmn-auto-layout": "^1.0.1",
 		"bpmn-js": "^18.8.0",
 		"bpmn-moddle": "^9.0.4",
 		"diagram-js": "^15.4.0"

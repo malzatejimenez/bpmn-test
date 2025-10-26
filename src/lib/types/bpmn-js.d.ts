@@ -104,3 +104,7 @@ declare module 'bpmn-js' {
 	import Viewer from 'bpmn-js/lib/Viewer';
 	export default Viewer;
 }
+
+declare module 'bpmn-auto-layout' {
+	export function layoutProcess(xml: string): Promise<string>;
+}

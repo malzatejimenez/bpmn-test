@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      bpmn-auto-layout:
+        specifier: ^1.0.1
+        version: 1.0.1
       bpmn-js:
         specifier: ^18.8.0
         version: 18.8.0
@@ -833,6 +836,10 @@ packages:
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
+
+  bpmn-auto-layout@1.0.1:
+    resolution: {integrity: sha512-mBa7McrlP6KvMGDUg7fwDdC0+7TsDXXMrSf3WsQU5Y/9TqQL3Kd6t5VujAJ2u9PYPKJ0aj+kcmwP4g0whMkVEQ==}
+    engines: {node: '>= 18'}
 
   bpmn-js@18.8.0:
     resolution: {integrity: sha512-mihpkEQGQG9Bj+TNELCxd2r1VO2jlCVsqRQTLZGfERdqMR0lGzu/VmHOpoZqKv6zyXaUHekbdsrdE5VJgOKkMQ==}
@@ -2546,6 +2553,11 @@ snapshots:
   axobject-query@4.1.0: {}
 
   balanced-match@1.0.2: {}
+
+  bpmn-auto-layout@1.0.1:
+    dependencies:
+      bpmn-moddle: 9.0.4
+      min-dash: 4.2.3
 
   bpmn-js@18.8.0:
     dependencies:

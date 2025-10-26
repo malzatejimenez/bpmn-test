@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import BpmnViewer from '$lib/components/BpmnViewer.svelte';
+	import BpmnModeler from '$lib/components/BpmnModeler.svelte';
 	import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
 	import { bpmnBuilder } from '$lib/services/bpmn-builder';
 	import '$lib/styles/bpmn.css';
@@ -78,6 +78,8 @@
 	let flujoActual = $state<BPMNFlowDefinition | null>(null);
 	let error = $state<string | null>(null);
 	let autoLayoutEnabled = $state(false);
+	let modoEdicion = $state(false);
+	let modelerRef = $state<any>(null);
 
 	// Parsear y actualizar el flujo
 	function actualizarFlujo() {
@@ -164,6 +166,28 @@
 		actualizarFlujo();
 	}
 
+	// Aplicar auto-layout avanzado al diagrama actual
+	async function aplicarAutoLayout() {
+		if (!modelerRef) return;
+
+		try {
+			const xmlActual = await modelerRef.exportXML();
+			if (!xmlActual) return;
+
+			const xmlConLayout = await bpmnBuilder.applyAdvancedLayout(xmlActual);
+			await modelerRef.loadDiagramXML(xmlConLayout);
+		} catch (err) {
+			console.error('Error aplicando auto-layout:', err);
+			error = 'Error al aplicar auto-layout';
+		}
+	}
+
+	// Manejar cambios en el diagrama cuando está en modo edición
+	function handleDiagramChange(xml: string) {
+		// Aquí puedes actualizar el código si lo deseas
+		console.log('Diagrama modificado');
+	}
+
 	// Inicializar con el flujo por defecto cuando el componente monta
 	onMount(() => {
 		actualizarFlujo();
@@ -184,7 +208,7 @@
 				<div class="header-actions">
 					<label class="auto-layout-toggle">
 						<input type="checkbox" bind:checked={autoLayoutEnabled} onchange={actualizarFlujo} />
-						Auto-layout
+						Auto-layout básico
 					</label>
 					<button onclick={actualizarFlujo} class="btn-primary">▶️ Actualizar</button>
 				</div>
@@ -218,15 +242,30 @@
 			</div>
 		</div>
 
-		<!-- Visualizador -->
+		<!-- Visualizador / Editor -->
 		<div class="viewer-panel">
 			<div class="panel-header">
-				<h2>👁️ Vista Previa</h2>
+				<h2>{modoEdicion ? '✏️ Editor Visual' : '👁️ Vista Previa'}</h2>
+				<div class="header-actions">
+					<button onclick={aplicarAutoLayout} class="btn-secondary" disabled={!flujoActual}>
+						🎯 Auto-organizar
+					</button>
+					<label class="mode-toggle">
+						<input type="checkbox" bind:checked={modoEdicion} />
+						<span class="toggle-label">{modoEdicion ? '🔓 Edición' : '🔒 Solo lectura'}</span>
+					</label>
+				</div>
 			</div>
 
 			<div class="viewer-container">
 				{#if flujoActual}
-					<BpmnViewer flowDefinition={flujoActual} class="preview-viewer" />
+					<BpmnModeler
+						bind:this={modelerRef}
+						flowDefinition={flujoActual}
+						class="preview-viewer"
+						editable={modoEdicion}
+						onChange={handleDiagramChange}
+					/>
 				{:else}
 					<div class="empty-state">
 						<p>⚠️ No hay flujo para mostrar</p>
@@ -355,6 +394,46 @@
 
 	.btn-primary:hover {
 		background: #2563eb;
+	}
+
+	.btn-secondary {
+		padding: 0.5rem 1rem;
+		background: #10b981;
+		color: white;
+		border: none;
+		border-radius: 0.375rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.btn-secondary:hover:not(:disabled) {
+		background: #059669;
+	}
+
+	.btn-secondary:disabled {
+		background: #9ca3af;
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+
+	.mode-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.toggle-label {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #64748b;
+		transition: color 0.2s;
+	}
+
+	.mode-toggle input:checked + .toggle-label {
+		color: #3b82f6;
 	}
 
 	.examples {
