@@ -292,9 +292,9 @@ describe('BpmnBuilder', () => {
 				expect(node.position?.y).toBeGreaterThanOrEqual(0);
 			});
 
-			// Check that start event is positioned first
+			// Check that start event is centered in first column (X = 100 + swimlaneWidth/2)
 			const startNode = layouted.nodes.find((n) => n.id === 'StartEvent_1');
-			expect(startNode?.position?.x).toBe(100);
+			expect(startNode?.position?.x).toBe(250); // 100 (base) + 300/2 (centered in column)
 		});
 	});
 });
