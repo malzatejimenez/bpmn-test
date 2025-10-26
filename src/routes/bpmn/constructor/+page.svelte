@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import BpmnModeler from '$lib/components/BpmnModeler.svelte';
 	import FlowTable from '$lib/components/FlowTable.svelte';
+	import ViewSwitcher from '$lib/components/ViewSwitcher.svelte';
 	import type { TableRow } from '$lib/types/flow-table.types';
 	import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
 	import { bpmnBuilder } from '$lib/services/bpmn-builder';
 	import '$lib/styles/bpmn.css';
+
+	type ViewMode = 'table' | 'split' | 'diagram';
 
 	// State
 	let rows = $state<TableRow[]>([
@@ -21,6 +25,7 @@
 	let flujoActual = $state<BPMNFlowDefinition | null>(null);
 	let currentXml = $state<string | null>(null);
 	let modoEdicion = $state(false);
+	let viewMode = $state<ViewMode>('split');
 
 	// Convert table rows to BPMN flow definition
 	function rowsToFlowDefinition(tableRows: TableRow[]): BPMNFlowDefinition {
@@ -85,6 +90,21 @@
 	// Initialize
 	onMount(() => {
 		updateDiagram();
+
+		// Load saved view mode from localStorage
+		if (browser) {
+			const savedMode = localStorage.getItem('bpmn-view-mode');
+			if (savedMode && (savedMode === 'table' || savedMode === 'split' || savedMode === 'diagram')) {
+				viewMode = savedMode as ViewMode;
+			}
+		}
+	});
+
+	// Save view mode to localStorage when it changes
+	$effect(() => {
+		if (browser) {
+			localStorage.setItem('bpmn-view-mode', viewMode);
+		}
 	});
 </script>
 
@@ -92,9 +112,12 @@
 	<header class="page-header">
 		<h1>🏗️ Constructor de Flujos BPMN</h1>
 		<p class="subtitle">Crea flujos BPMN usando una tabla simple - sin código</p>
+
+		<!-- View Mode Switcher -->
+		<ViewSwitcher bind:viewMode />
 	</header>
 
-	<div class="content-layout">
+	<div class="content-layout" class:table={viewMode === 'table'} class:split={viewMode === 'split'} class:diagram={viewMode === 'diagram'}>
 		<!-- Left panel: Table editor -->
 		<div class="editor-panel">
 			<div class="panel-header">
@@ -162,9 +185,32 @@
 
 	.content-layout {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
 		gap: 2rem;
-		height: calc(100vh - 200px);
+		height: calc(100vh - 250px);
+		transition: grid-template-columns 0.3s ease;
+	}
+
+	/* Split view (default) - both panels */
+	.content-layout.split {
+		grid-template-columns: 1fr 1fr;
+	}
+
+	/* Table only view */
+	.content-layout.table {
+		grid-template-columns: 1fr;
+	}
+
+	.content-layout.table .preview-panel {
+		display: none !important;
+	}
+
+	/* Diagram only view */
+	.content-layout.diagram {
+		grid-template-columns: 1fr;
+	}
+
+	.content-layout.diagram .editor-panel {
+		display: none !important;
 	}
 
 	.editor-panel,
