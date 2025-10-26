@@ -27,6 +27,29 @@
 	let viewportListener: any = null;
 
 	/**
+	 * Setup read-only mode by hiding palette and context pad
+	 */
+	function setupReadOnlyMode() {
+		if (!modeler || editable) return;
+
+		try {
+			// Close palette and context pad in read-only mode
+			const palette = modeler.get('palette');
+			const contextPad = modeler.get('contextPad');
+
+			if (palette) {
+				palette.close();
+			}
+
+			if (contextPad) {
+				contextPad.close();
+			}
+		} catch (err) {
+			console.warn('Error setting up read-only mode:', err);
+		}
+	}
+
+	/**
 	 * Setup or remove change listener based on editable state
 	 */
 	function setupChangeListener() {
@@ -38,8 +61,8 @@
 			changeListener = null;
 		}
 
-		// Add listener only if editable and onChange callback exists
-		if (editable && onChange) {
+		// Add listener whenever onChange callback exists (regardless of editable state)
+		if (onChange) {
 			changeListener = async () => {
 				// Skip onChange during relayout to avoid infinite loops
 				if (!isRelayouting) {
@@ -89,24 +112,7 @@
 			const { default: Modeler } = await import('bpmn-js/lib/Modeler');
 			modeler = new Modeler({
 				container: container,
-				height: '100%',
-				// Disable interaction when not editable
-				keyboard: editable ? undefined : { bindTo: document },
-				additionalModules: editable ? [] : [
-					{
-						// Disable palette (left sidebar with shapes)
-						paletteProvider: ['value', { getPaletteEntries: () => ({}) }],
-						// Disable context pad (hover menu on shapes)
-						contextPadProvider: ['value', { getContextPadEntries: () => ({}) }],
-						// Disable move (drag elements)
-						move: ['value', null],
-						// Disable bendpoints (reshape connections)
-						bendpoints: ['value', null],
-						// Disable create/connect
-						create: ['value', null],
-						connect: ['value', null],
-					}
-				]
+				height: '100%'
 			});
 
 			// Setup change listener based on editable state
@@ -123,6 +129,9 @@
 			} else if (flowDefinition) {
 				await loadFlowDefinition(flowDefinition);
 			}
+
+			// Setup read-only mode after diagram is loaded
+			setupReadOnlyMode();
 		} catch (err) {
 			console.error('Error initializing BPMN modeler:', err);
 			error = err instanceof Error ? err.message : 'Failed to initialize modeler';
@@ -309,12 +318,13 @@
 		}
 	});
 
-	// Watch for editable changes - update listener without destroying modeler
+	// Watch for editable changes - update listener and read-only mode
 	let previousEditable = editable;
 	$effect(() => {
 		if (previousEditable !== editable && modeler) {
 			previousEditable = editable;
 			setupChangeListener();
+			setupReadOnlyMode();
 		}
 	});
 </script>
@@ -352,6 +362,23 @@
 	.bpmn-modeler-wrapper.editable {
 		border-color: #3b82f6;
 		box-shadow: 0 0 0 1px #3b82f6;
+	}
+
+	/* Disable interactions in read-only mode */
+	.bpmn-modeler-wrapper:not(.editable) :global(.djs-palette),
+	.bpmn-modeler-wrapper:not(.editable) :global(.djs-context-pad),
+	.bpmn-modeler-wrapper:not(.editable) :global(.djs-popup) {
+		display: none !important;
+	}
+
+	/* Prevent element manipulation in read-only mode */
+	.bpmn-modeler-wrapper:not(.editable) :global(.djs-element) {
+		pointer-events: none !important;
+	}
+
+	/* Allow canvas pan/zoom in read-only mode */
+	.bpmn-modeler-wrapper:not(.editable) :global(.djs-container) {
+		pointer-events: auto !important;
 	}
 
 	.bpmn-container {
