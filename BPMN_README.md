@@ -8,11 +8,14 @@ This project includes a complete BPMN 2.0 visualizer built with SvelteKit 5. The
 
 ✅ **Programmatic Flow Definition** - Define BPMN flows using TypeScript interfaces
 ✅ **BPMN 2.0 Compliant** - Generates valid BPMN 2.0 XML
-✅ **Interactive Viewer** - Built on bpmn-js for professional diagram rendering
+✅ **Interactive Viewer & Editor** - Built on bpmn-js for professional rendering
+✅ **Drag & Drop Editing** - Full modeler capabilities with visual editing
+✅ **Intelligent Auto-Layout** - Advanced connection routing that minimizes overlaps
+✅ **Edit/Read-Only Toggle** - Switch between viewing and editing modes
+✅ **Manhattan Routing** - Automatic orthogonal connection layout
 ✅ **Internationalization** - Full i18n support (English/Spanish) via Paraglide.js
 ✅ **Export Capabilities** - Export diagrams as XML or SVG
-✅ **Auto-layout** - Automatic node positioning algorithm
-✅ **Multiple Node Types** - Support for events, tasks, gateways, and more
+✅ **Multiple Node Types** - Support for 16+ BPMN element types
 ✅ **Fully Typed** - Complete TypeScript support
 
 ## Architecture
@@ -32,17 +35,33 @@ This project includes a complete BPMN 2.0 visualizer built with SvelteKit 5. The
    - Diagram visualization data (DI) generation
 
 3. **BpmnViewer Component** ([src/lib/components/BpmnViewer.svelte](src/lib/components/BpmnViewer.svelte))
-   - Svelte 5 component with lifecycle management
+   - Svelte 5 component for read-only visualization
    - Accepts flow definitions or raw XML
    - Export methods (XML, SVG)
    - Zoom controls
    - Reactive to prop changes
 
-4. **Demo Page** ([src/routes/bpmn/+page.svelte](src/routes/bpmn/+page.svelte))
+4. **BpmnModeler Component** ([src/lib/components/BpmnModeler.svelte](src/lib/components/BpmnModeler.svelte))
+   - Full editing capabilities with drag & drop
+   - Toggle between editable and readonly modes
+   - Change detection with `onChange` callback
+   - Palette and context pad for element creation
+   - Visual indicators for edit mode
+   - Same export and zoom capabilities as Viewer
+
+5. **Demo Page** ([src/routes/bpmn/+page.svelte](src/routes/bpmn/+page.svelte))
    - Interactive showcase with 3 example flows
    - Multilingual UI
    - Export functionality
    - Responsive design
+
+6. **Flow Builder Page** ([src/routes/bpmn/crear/+page.svelte](src/routes/bpmn/crear/+page.svelte))
+   - Interactive flow builder with code editor
+   - Live preview with BpmnModeler
+   - Edit/readonly mode toggle
+   - Advanced auto-layout button
+   - Example flow templates
+   - Real-time diagram updates
 
 ### Example Flows
 
@@ -113,7 +132,7 @@ const myFlow: BPMNFlowDefinition = {
 const xml = await bpmnBuilder.buildXML(myFlow);
 ```
 
-### Using the BpmnViewer Component
+### Using the BpmnViewer Component (Read-Only)
 
 ```svelte
 <script lang="ts">
@@ -134,15 +153,68 @@ const xml = await bpmnBuilder.buildXML(myFlow);
 <button on:click={exportDiagram}>Export</button>
 ```
 
+### Using the BpmnModeler Component (Editable)
+
+```svelte
+<script lang="ts">
+  import BpmnModeler from '$lib/components/BpmnModeler.svelte';
+  import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
+
+  let myFlow: BPMNFlowDefinition = { /* ... */ };
+  let modeler: BpmnModeler;
+  let isEditable = $state(true);
+
+  function handleChange(xml: string) {
+    console.log('Diagram modified:', xml);
+  }
+
+  async function applyAutoLayout() {
+    const currentXml = await modeler.exportXML();
+    const layoutedXml = await bpmnBuilder.applyAdvancedLayout(currentXml);
+    await modeler.loadDiagramXML(layoutedXml);
+  }
+</script>
+
+<BpmnModeler
+  bind:this={modeler}
+  flowDefinition={myFlow}
+  editable={isEditable}
+  onChange={handleChange}
+/>
+
+<button onclick={() => isEditable = !isEditable}>
+  Toggle Edit Mode
+</button>
+<button onclick={applyAutoLayout}>
+  Auto-organize
+</button>
+```
+
 ### Auto-layout
 
-If you don't want to manually position nodes:
+Two auto-layout options are available:
 
+**Basic Auto-layout (BFS-based)**
 ```typescript
 const layoutedFlow = bpmnBuilder.autoLayout(myFlow);
 ```
+Uses breadth-first search to position nodes in a left-to-right flow.
 
-The auto-layout algorithm uses BFS to position nodes in a left-to-right flow.
+**Advanced Auto-layout (bpmn-auto-layout)**
+```typescript
+const xml = await bpmnBuilder.buildXML(myFlow);
+const layoutedXml = await bpmnBuilder.applyAdvancedLayout(xml);
+```
+Uses the `bpmn-auto-layout` library for intelligent positioning with:
+- Manhattan routing algorithm for connections
+- Optimal element spacing
+- Minimized connection overlaps
+- Automatic waypoint generation
+
+**Build with Auto-layout**
+```typescript
+const layoutedXml = await bpmnBuilder.buildXMLWithAutoLayout(myFlow);
+```
 
 ## Supported BPMN Elements
 
@@ -179,8 +251,14 @@ class BpmnBuilder {
   // Convert flow definition to BPMN XML
   async buildXML(flowDefinition: BPMNFlowDefinition): Promise<string>
 
-  // Auto-position nodes in the flow
+  // Auto-position nodes in the flow (basic BFS algorithm)
   autoLayout(flowDefinition: BPMNFlowDefinition): BPMNFlowDefinition
+
+  // Apply advanced auto-layout to XML
+  async applyAdvancedLayout(xml: string): Promise<string>
+
+  // Build XML with advanced auto-layout applied
+  async buildXMLWithAutoLayout(flowDefinition: BPMNFlowDefinition): Promise<string>
 }
 ```
 
@@ -196,6 +274,31 @@ class BpmnBuilder {
 - `exportSVG(): Promise<string | null>` - Export as SVG
 - `zoomToFit(): void` - Fit diagram to viewport
 - `setZoom(level: number): void` - Set zoom level
+
+### BpmnModeler (Svelte Component)
+
+**Props:**
+- `flowDefinition?: BPMNFlowDefinition` - Flow to display/edit
+- `xml?: string` - Raw BPMN XML to display/edit
+- `class?: string` - CSS class
+- `editable?: boolean` - Enable editing mode (default: `true`)
+- `onChange?: (xml: string) => void` - Callback when diagram changes
+
+**Methods:**
+- `loadDiagramXML(xml: string): Promise<void>` - Load new XML into modeler
+- `exportXML(): Promise<string | null>` - Export as BPMN XML
+- `exportSVG(): Promise<string | null>` - Export as SVG
+- `zoomToFit(): void` - Fit diagram to viewport
+- `setZoom(level: number): void` - Set zoom level
+
+**Features:**
+- Drag & drop elements from palette
+- Move, resize, and reconnect elements
+- Context pad for quick actions
+- Manhattan routing for connections
+- Undo/redo support (Ctrl+Z / Ctrl+Y)
+- Auto-snapping to grid
+- Bendpoint manipulation
 
 ## Testing
 
