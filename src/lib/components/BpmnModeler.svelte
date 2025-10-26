@@ -89,7 +89,24 @@
 			const { default: Modeler } = await import('bpmn-js/lib/Modeler');
 			modeler = new Modeler({
 				container: container,
-				height: '100%'
+				height: '100%',
+				// Disable interaction when not editable
+				keyboard: editable ? undefined : { bindTo: document },
+				additionalModules: editable ? [] : [
+					{
+						// Disable palette (left sidebar with shapes)
+						paletteProvider: ['value', { getPaletteEntries: () => ({}) }],
+						// Disable context pad (hover menu on shapes)
+						contextPadProvider: ['value', { getContextPadEntries: () => ({}) }],
+						// Disable move (drag elements)
+						move: ['value', null],
+						// Disable bendpoints (reshape connections)
+						bendpoints: ['value', null],
+						// Disable create/connect
+						create: ['value', null],
+						connect: ['value', null],
+					}
+				]
 			});
 
 			// Setup change listener based on editable state
@@ -172,6 +189,12 @@
 			// Fit viewport to diagram
 			const canvas = modeler.get('canvas');
 			canvas.zoom('fit-viewport');
+
+			// Save the loaded XML via onChange callback (for persistence)
+			if (onChange) {
+				const { xml: currentXml } = await modeler.saveXML({ format: true });
+				onChange(currentXml);
+			}
 
 			error = null;
 		} catch (err) {
