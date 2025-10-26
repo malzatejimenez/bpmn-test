@@ -22,6 +22,36 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let isRelayouting = false;
+	let changeListener: any = null;
+
+	/**
+	 * Setup or remove change listener based on editable state
+	 */
+	function setupChangeListener() {
+		if (!modeler) return;
+
+		// Remove existing listener if any
+		if (changeListener) {
+			modeler.off('commandStack.changed', changeListener);
+			changeListener = null;
+		}
+
+		// Add listener only if editable and onChange callback exists
+		if (editable && onChange) {
+			changeListener = async () => {
+				// Skip onChange during relayout to avoid infinite loops
+				if (!isRelayouting) {
+					try {
+						const { xml: currentXml } = await modeler.saveXML({ format: true });
+						onChange(currentXml);
+					} catch (err) {
+						console.error('Error saving XML on change:', err);
+					}
+				}
+			};
+			modeler.on('commandStack.changed', changeListener);
+		}
+	}
 
 	/**
 	 * Initialize BPMN modeler or viewer
@@ -37,16 +67,8 @@
 				height: '100%'
 			});
 
-			// Listen to changes only if editable
-			if (editable) {
-				modeler.on('commandStack.changed', async () => {
-					// Skip onChange during relayout to avoid infinite loops
-					if (onChange && !isRelayouting) {
-						const { xml: currentXml } = await modeler.saveXML({ format: true });
-						onChange(currentXml);
-					}
-				});
-			}
+			// Setup change listener based on editable state
+			setupChangeListener();
 
 			loading = false;
 
@@ -229,24 +251,12 @@
 		loadXML(xml);
 	});
 
-	// Watch for editable changes - need to recreate modeler
+	// Watch for editable changes - update listener without destroying modeler
 	let previousEditable = editable;
 	$effect(() => {
 		if (previousEditable !== editable && modeler) {
-			// Save current XML before destroying
-			const preserveXml = async () => {
-				const currentXml = await modeler.saveXML({ format: true });
-				modeler.destroy();
-				modeler = null;
-				previousEditable = editable;
-
-				// Reinitialize with preserved XML
-				await initModeler();
-				if (currentXml?.xml) {
-					await loadXML(currentXml.xml);
-				}
-			};
-			preserveXml();
+			previousEditable = editable;
+			setupChangeListener();
 		}
 	});
 </script>

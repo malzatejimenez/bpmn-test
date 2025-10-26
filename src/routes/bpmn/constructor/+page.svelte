@@ -11,8 +11,16 @@
 
 	type ViewMode = 'table' | 'split' | 'diagram';
 
-	// State
-	let rows = $state<TableRow[]>([
+	// localStorage keys
+	const STORAGE_KEYS = {
+		ROWS: 'bpmn-constructor-rows',
+		XML: 'bpmn-constructor-xml',
+		VIEW_MODE: 'bpmn-view-mode',
+		EDIT_MODE: 'bpmn-edit-mode'
+	};
+
+	// Default initial row
+	const DEFAULT_ROWS: TableRow[] = [
 		{
 			rowNumber: 1,
 			id: 'start',
@@ -20,8 +28,10 @@
 			label: 'Inicio',
 			connectsTo: []
 		}
-	]);
+	];
 
+	// State
+	let rows = $state<TableRow[]>(DEFAULT_ROWS);
 	let flujoActual = $state<BPMNFlowDefinition | null>(null);
 	let currentXml = $state<string | null>(null);
 	let modoEdicion = $state(false);
@@ -85,25 +95,93 @@
 	// Handle diagram changes from visual editor
 	function handleDiagramChange(xml: string) {
 		currentXml = xml;
+		// Immediately save to localStorage when diagram changes
+		if (browser) {
+			localStorage.setItem(STORAGE_KEYS.XML, xml);
+		}
+	}
+
+	// Load data from localStorage
+	function loadFromStorage() {
+		if (!browser) return;
+
+		try {
+			// Load view mode
+			const savedMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+			if (savedMode && (savedMode === 'table' || savedMode === 'split' || savedMode === 'diagram')) {
+				viewMode = savedMode as ViewMode;
+			}
+
+			// Load edit mode
+			const savedEditMode = localStorage.getItem(STORAGE_KEYS.EDIT_MODE);
+			if (savedEditMode !== null) {
+				modoEdicion = savedEditMode === 'true';
+			}
+
+			// Load table rows
+			const savedRows = localStorage.getItem(STORAGE_KEYS.ROWS);
+			if (savedRows) {
+				const parsed = JSON.parse(savedRows);
+				if (Array.isArray(parsed) && parsed.length > 0) {
+					rows = parsed;
+				}
+			}
+
+			// Load diagram XML
+			const savedXml = localStorage.getItem(STORAGE_KEYS.XML);
+			if (savedXml) {
+				currentXml = savedXml;
+			}
+		} catch (err) {
+			console.error('Error loading from localStorage:', err);
+		}
+	}
+
+	// Save data to localStorage
+	function saveToStorage() {
+		if (!browser) return;
+
+		try {
+			localStorage.setItem(STORAGE_KEYS.ROWS, JSON.stringify(rows));
+			localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
+			localStorage.setItem(STORAGE_KEYS.EDIT_MODE, String(modoEdicion));
+
+			if (currentXml) {
+				localStorage.setItem(STORAGE_KEYS.XML, currentXml);
+			}
+		} catch (err) {
+			console.error('Error saving to localStorage:', err);
+		}
 	}
 
 	// Initialize
 	onMount(() => {
-		updateDiagram();
+		loadFromStorage();
 
-		// Load saved view mode from localStorage
-		if (browser) {
-			const savedMode = localStorage.getItem('bpmn-view-mode');
-			if (savedMode && (savedMode === 'table' || savedMode === 'split' || savedMode === 'diagram')) {
-				viewMode = savedMode as ViewMode;
-			}
+		// Update diagram if no saved XML
+		if (!currentXml) {
+			updateDiagram();
 		}
 	});
 
-	// Save view mode to localStorage when it changes
+	// Auto-save rows when they change
+	$effect(() => {
+		if (browser && rows) {
+			localStorage.setItem(STORAGE_KEYS.ROWS, JSON.stringify(rows));
+		}
+	});
+
+	// Auto-save view mode when it changes
 	$effect(() => {
 		if (browser) {
-			localStorage.setItem('bpmn-view-mode', viewMode);
+			localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
+		}
+	});
+
+	// Auto-save edit mode when it changes
+	$effect(() => {
+		if (browser) {
+			localStorage.setItem(STORAGE_KEYS.EDIT_MODE, String(modoEdicion));
 		}
 	});
 </script>
@@ -184,6 +262,7 @@
 	}
 
 	.content-layout {
+		position: relative;
 		display: grid;
 		gap: 2rem;
 		height: calc(100vh - 250px);
@@ -195,22 +274,28 @@
 		grid-template-columns: 1fr 1fr;
 	}
 
-	/* Table only view */
+	/* Table only view - hide preview but keep it mounted */
 	.content-layout.table {
 		grid-template-columns: 1fr;
 	}
 
 	.content-layout.table .preview-panel {
-		display: none !important;
+		position: absolute;
+		visibility: hidden;
+		pointer-events: none;
+		left: -9999px;
 	}
 
-	/* Diagram only view */
+	/* Diagram only view - hide editor but keep it mounted */
 	.content-layout.diagram {
 		grid-template-columns: 1fr;
 	}
 
 	.content-layout.diagram .editor-panel {
-		display: none !important;
+		position: absolute;
+		visibility: hidden;
+		pointer-events: none;
+		left: -9999px;
 	}
 
 	.editor-panel,
