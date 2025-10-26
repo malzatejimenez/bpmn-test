@@ -38,6 +38,7 @@
 	let modoEdicion = $state(false);
 	let viewMode = $state<ViewMode>('split');
 	let viewportX = $state(0);
+	let diagramKey = $state(0); // Key to force diagram re-render
 
 	// Convert table rows to BPMN flow definition
 	function rowsToFlowDefinition(tableRows: TableRow[]): BPMNFlowDefinition {
@@ -76,14 +77,23 @@
 		if (rows.length === 0) {
 			flujoActual = null;
 			currentXml = null;
+			if (browser) {
+				localStorage.removeItem(STORAGE_KEYS.XML);
+			}
 			return;
 		}
 
 		try {
 			const flowDef = rowsToFlowDefinition(rows);
 			flujoActual = flowDef;
-			// Reset XML to force re-render
+			// Reset XML to force re-render from flowDefinition
 			currentXml = null;
+			// Remove saved XML so diagram regenerates from table data
+			if (browser) {
+				localStorage.removeItem(STORAGE_KEYS.XML);
+			}
+			// Increment key to force BpmnModeler re-render
+			diagramKey++;
 		} catch (err) {
 			console.error('Error updating diagram:', err);
 		}
@@ -266,14 +276,16 @@
 						<SwimlaneHeaders swimlanes={swimlanes()} viewportX={viewportX} />
 					{/if}
 
-					<BpmnModeler
-						flowDefinition={currentXml ? undefined : flujoActual}
-						xml={currentXml}
-						editable={modoEdicion}
-						onChange={handleDiagramChange}
-						onViewportChange={handleViewportChange}
-						class="diagram-viewer"
-					/>
+					{#key diagramKey}
+						<BpmnModeler
+							flowDefinition={currentXml ? undefined : flujoActual}
+							xml={currentXml}
+							editable={modoEdicion}
+							onChange={handleDiagramChange}
+							onViewportChange={handleViewportChange}
+							class="diagram-viewer"
+						/>
+					{/key}
 				{:else}
 					<div class="empty-state">
 						<p>⚠️ Agrega actividades en la tabla para ver el diagrama</p>

@@ -273,17 +273,17 @@
 
 	// Watch for changes in props and reload when they change
 	$effect(() => {
-		// Track both modeler readiness and flowDefinition changes
-		if (!modeler || !flowDefinition) return;
+		// Track both modeler readiness and diagram source changes
+		// Priority: xml > flowDefinition (xml is the edited version)
+		if (!modeler) return;
 
-		loadFlowDefinition(flowDefinition);
-	});
-
-	$effect(() => {
-		// Track both modeler readiness and xml changes
-		if (!modeler || !xml) return;
-
-		loadXML(xml);
+		if (xml) {
+			// Load from XML if available (user has edited the diagram)
+			loadXML(xml);
+		} else if (flowDefinition) {
+			// Load from flowDefinition if no XML (auto-generated from table)
+			loadFlowDefinition(flowDefinition);
+		}
 	});
 
 	// Watch for editable changes - update listener without destroying modeler
