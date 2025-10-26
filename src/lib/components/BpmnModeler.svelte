@@ -190,11 +190,20 @@
 	let previousEditable = editable;
 	$effect(() => {
 		if (previousEditable !== editable && modeler) {
-			// Editable state changed, need to reinitialize
-			modeler.destroy();
-			modeler = null;
-			previousEditable = editable;
-			initModeler();
+			// Save current XML before destroying
+			const preserveXml = async () => {
+				const currentXml = await modeler.saveXML({ format: true });
+				modeler.destroy();
+				modeler = null;
+				previousEditable = editable;
+
+				// Reinitialize with preserved XML
+				await initModeler();
+				if (currentXml?.xml) {
+					await loadXML(currentXml.xml);
+				}
+			};
+			preserveXml();
 		}
 	});
 </script>

@@ -80,6 +80,7 @@
 	let autoLayoutEnabled = $state(false);
 	let modoEdicion = $state(false);
 	let modelerRef = $state<any>(null);
+	let currentXml = $state<string | null>(null); // Guardar XML actual para preservar cambios
 
 	// Parsear y actualizar el flujo
 	function actualizarFlujo() {
@@ -184,8 +185,9 @@
 
 	// Manejar cambios en el diagrama cuando está en modo edición
 	function handleDiagramChange(xml: string) {
-		// Aquí puedes actualizar el código si lo deseas
-		console.log('Diagrama modificado');
+		// Guardar XML actualizado para preservar cambios
+		currentXml = xml;
+		console.log('Diagrama modificado y guardado');
 	}
 
 	// Inicializar con el flujo por defecto cuando el componente monta
@@ -258,10 +260,11 @@
 			</div>
 
 			<div class="viewer-container">
-				{#if flujoActual}
+				{#if flujoActual || currentXml}
 					<BpmnModeler
 						bind:this={modelerRef}
-						flowDefinition={flujoActual}
+						flowDefinition={currentXml ? undefined : flujoActual}
+						xml={currentXml}
 						class="preview-viewer"
 						editable={modoEdicion}
 						onChange={handleDiagramChange}
