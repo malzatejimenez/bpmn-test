@@ -3,6 +3,7 @@
 	import { NODE_TYPE_ICONS } from '$lib/types/flow-table.types';
 	import NodeTypeSelect from './NodeTypeSelect.svelte';
 	import ConnectionsCell from './ConnectionsCell.svelte';
+	import ResponsableAutocomplete from './ResponsableAutocomplete.svelte';
 
 	interface Props {
 		rows: TableRow[];
@@ -20,6 +21,7 @@
 			id: generateId('node', nextRowNumber),
 			type: 'task',
 			label: '',
+			responsable: '',
 			connectsTo: []
 		};
 
@@ -46,6 +48,11 @@
 	// Get all available node IDs for connection dropdowns
 	let availableNodeIds = $derived(rows.map((r) => ({ id: r.id, label: r.label })));
 
+	// Get unique responsables for autocomplete
+	let availableResponsables = $derived(
+		Array.from(new Set(rows.map((r) => r.responsable).filter((r): r is string => !!r && r.trim() !== '')))
+	);
+
 	// Validate unique IDs
 	function isDuplicateId(id: string, rowNumber: number): boolean {
 		return rows.filter((r) => r.id === id && r.rowNumber !== rowNumber).length > 0;
@@ -70,6 +77,7 @@
 					<th class="col-id">ID</th>
 					<th class="col-type">Tipo</th>
 					<th class="col-label">Nombre</th>
+					<th class="col-responsable">Responsable</th>
 					<th class="col-connections">Conecta a</th>
 					<th class="col-actions">Acciones</th>
 				</tr>
@@ -113,6 +121,15 @@
 								oninput={(e) => updateRow(row.rowNumber, 'label', e.currentTarget.value)}
 								placeholder="Nombre de la actividad"
 								class="input-cell"
+							/>
+						</td>
+
+						<!-- Responsable -->
+						<td class="col-responsable">
+							<ResponsableAutocomplete
+								value={row.responsable || ''}
+								{availableResponsables}
+								onChange={(newValue) => updateRow(row.rowNumber, 'responsable', newValue)}
 							/>
 						</td>
 
@@ -236,6 +253,11 @@
 
 	.col-label {
 		min-width: 200px;
+	}
+
+	.col-responsable {
+		min-width: 150px;
+		width: 180px;
 	}
 
 	.col-connections {

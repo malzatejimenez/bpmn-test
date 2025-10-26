@@ -42,6 +42,7 @@ export interface BPMNNode {
 	id: string;
 	type: BPMNNodeType;
 	label: string;
+	responsable?: string;
 	position?: BPMNPosition;
 	dimensions?: BPMNDimensions;
 	properties?: Record<string, unknown>;

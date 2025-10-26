@@ -4,6 +4,7 @@
 	import BpmnModeler from '$lib/components/BpmnModeler.svelte';
 	import FlowTable from '$lib/components/FlowTable.svelte';
 	import ViewSwitcher from '$lib/components/ViewSwitcher.svelte';
+	import SwimlaneHeaders from '$lib/components/SwimlaneHeaders.svelte';
 	import type { TableRow } from '$lib/types/flow-table.types';
 	import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
 	import { bpmnBuilder } from '$lib/services/bpmn-builder';
@@ -43,7 +44,8 @@
 		const nodes = tableRows.map((row, index) => ({
 			id: row.id,
 			type: row.type,
-			label: row.label
+			label: row.label,
+			responsable: row.responsable
 		}));
 
 		// Create connections from all rows
@@ -100,6 +102,43 @@
 			localStorage.setItem(STORAGE_KEYS.XML, xml);
 		}
 	}
+
+	// Calculate swimlanes based on responsables
+	let swimlanes = $derived(() => {
+		if (!rows || rows.length === 0) return [];
+
+		// Group by responsable
+		const responsableGroups = new Map<string, TableRow[]>();
+		const defaultResponsable = 'Sin asignar';
+
+		rows.forEach((row) => {
+			const responsable = row.responsable && row.responsable.trim() !== ''
+				? row.responsable
+				: defaultResponsable;
+
+			if (!responsableGroups.has(responsable)) {
+				responsableGroups.set(responsable, []);
+			}
+			responsableGroups.get(responsable)!.push(row);
+		});
+
+		// Create swimlane objects matching auto-layout
+		const swimlaneHeight = 250;
+		const swimlanePadding = 100;
+		let currentYBase = 100;
+
+		return Array.from(responsableGroups.keys()).map((responsable) => ({
+			responsable,
+			yPosition: currentYBase,
+			height: swimlaneHeight
+		})).map((lane, index) => {
+			const yPos = 100 + index * swimlaneHeight;
+			return {
+				...lane,
+				yPosition: yPos
+			};
+		});
+	});
 
 	// Load data from localStorage
 	function loadFromStorage() {
@@ -219,6 +258,11 @@
 
 			<div class="diagram-container">
 				{#if flujoActual || currentXml}
+					<!-- Swimlane Headers Overlay -->
+					{#if swimlanes().length > 0}
+						<SwimlaneHeaders swimlanes={swimlanes()} />
+					{/if}
+
 					<BpmnModeler
 						flowDefinition={currentXml ? undefined : flujoActual}
 						xml={currentXml}
@@ -351,9 +395,11 @@
 	}
 
 	.diagram-container {
+		position: relative;
 		flex: 1;
 		min-height: 0;
 		background: #fafafa;
+		overflow: hidden;
 	}
 
 	:global(.diagram-viewer) {

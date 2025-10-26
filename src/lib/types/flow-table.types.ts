@@ -17,6 +17,7 @@ export interface TableRow {
 	id: string; // Unique node ID
 	type: BPMNNodeType; // Type of BPMN node
 	label: string; // Descriptive label
+	responsable?: string; // Person or role responsible for this activity
 	connectsTo: TableConnection[]; // Connections to other nodes
 }
 

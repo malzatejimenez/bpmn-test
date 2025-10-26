@@ -116,10 +116,16 @@ export class BpmnBuilder {
 
 		const bpmnType = typeMapping[node.type] || 'bpmn:Task';
 
+		// Merge responsable into properties if present
+		const properties = {
+			...node.properties,
+			...(node.responsable && { responsable: node.responsable })
+		};
+
 		return this.moddle.create(bpmnType, {
 			id: node.id,
 			name: node.label,
-			...node.properties
+			...properties
 		});
 	}
 
@@ -269,20 +275,43 @@ export class BpmnBuilder {
 	}
 
 	/**
-	 * Auto-layout nodes in a simple left-to-right flow
+	 * Auto-layout nodes in a left-to-right flow, grouped by responsable (swimlanes)
 	 */
 	autoLayout(flowDefinition: BPMNFlowDefinition): BPMNFlowDefinition {
 		const layouted = { ...flowDefinition };
 		const nodeMap = new Map<string, BPMNNode>();
 
+		// Group nodes by responsable (swimlanes)
+		const responsableGroups = new Map<string, BPMNNode[]>();
+		const defaultResponsable = 'Sin asignar';
+
+		layouted.nodes.forEach((node) => {
+			const responsable = node.responsable && node.responsable.trim() !== ''
+				? node.responsable
+				: defaultResponsable;
+
+			if (!responsableGroups.has(responsable)) {
+				responsableGroups.set(responsable, []);
+			}
+			responsableGroups.get(responsable)!.push(node);
+		});
+
 		// Find start events
 		const startNodes = layouted.nodes.filter((n) => n.type === 'startEvent');
 		const visitedNodes = new Set<string>();
 
-		let currentX = 100;
-		const currentY = 200;
 		const horizontalSpacing = 200;
-		const verticalSpacing = 150;
+		const swimlaneHeight = 250; // Height of each swimlane/responsable
+		const swimlanePadding = 100; // Vertical padding within swimlane
+
+		// Assign Y position ranges for each responsable
+		const responsableYPositions = new Map<string, number>();
+		let currentYBase = 100;
+
+		Array.from(responsableGroups.keys()).forEach((responsable) => {
+			responsableYPositions.set(responsable, currentYBase + swimlanePadding);
+			currentYBase += swimlaneHeight;
+		});
 
 		// Build adjacency map
 		const adjacencyMap = new Map<string, string[]>();
@@ -293,33 +322,49 @@ export class BpmnBuilder {
 			adjacencyMap.get(conn.from)!.push(conn.to);
 		}
 
-		// BFS layout from start events
-		const queue: Array<{ nodeId: string; x: number; y: number }> = [];
+		// BFS layout from start events, respecting responsable lanes
+		const queue: Array<{ nodeId: string; x: number }> = [];
 
 		// Position start events
-		startNodes.forEach((node, index) => {
-			const y = currentY + index * verticalSpacing;
-			node.position = { x: currentX, y };
+		startNodes.forEach((node) => {
+			const responsable = node.responsable && node.responsable.trim() !== ''
+				? node.responsable
+				: defaultResponsable;
+			const y = responsableYPositions.get(responsable) || 100;
+
+			node.position = { x: 100, y };
 			nodeMap.set(node.id, node);
 			visitedNodes.add(node.id);
-			queue.push({ nodeId: node.id, x: currentX, y });
+			queue.push({ nodeId: node.id, x: 100 });
 		});
+
+		// Track X positions per responsable to handle multiple nodes in same lane
+		const responsableXPositions = new Map<string, number>();
 
 		// BFS to position remaining nodes
 		while (queue.length > 0) {
 			const current = queue.shift()!;
+			const currentNode = layouted.nodes.find((n) => n.id === current.nodeId);
 			const nextNodes = adjacencyMap.get(current.nodeId) || [];
 
-			nextNodes.forEach((nextNodeId, index) => {
+			nextNodes.forEach((nextNodeId) => {
 				if (!visitedNodes.has(nextNodeId)) {
 					const node = layouted.nodes.find((n) => n.id === nextNodeId);
 					if (node) {
+						const responsable = node.responsable && node.responsable.trim() !== ''
+							? node.responsable
+							: defaultResponsable;
+
+						// Get Y position for this responsable's lane
+						const y = responsableYPositions.get(responsable) || 100;
+
+						// Calculate X position (next in flow)
 						const x = current.x + horizontalSpacing;
-						const y = current.y + index * verticalSpacing;
+
 						node.position = { x, y };
 						nodeMap.set(node.id, node);
 						visitedNodes.add(nextNodeId);
-						queue.push({ nodeId: nextNodeId, x, y });
+						queue.push({ nodeId: nextNodeId, x });
 					}
 				}
 			});
