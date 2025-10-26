@@ -12,6 +12,8 @@
 
 	let isEditing = $state(false);
 	let editingConnections = $state<TableConnection[]>([]);
+	let editButton: HTMLButtonElement | undefined;
+	let editorPosition = $state({ top: 0, left: 0 });
 
 	// Filter out current node from available targets
 	let filteredNodeIds = $derived(availableNodeIds.filter((n) => n.id !== currentNodeId));
@@ -41,6 +43,40 @@
 	// Start editing
 	function startEdit() {
 		editingConnections = JSON.parse(JSON.stringify(connections));
+
+		// Calculate position for the editor dialog
+		if (editButton) {
+			const rect = editButton.getBoundingClientRect();
+			const viewportHeight = window.innerHeight;
+			const viewportWidth = window.innerWidth;
+
+			// Preferred position: below the button
+			let top = rect.bottom + 4;
+			let left = rect.left - 150; // Offset to align nicely
+
+			// Ensure dialog doesn't go off-screen horizontally
+			const dialogWidth = 400;
+			if (left + dialogWidth > viewportWidth) {
+				left = viewportWidth - dialogWidth - 16; // 16px margin from edge
+			}
+			if (left < 16) {
+				left = 16; // Minimum 16px from left edge
+			}
+
+			// Ensure dialog doesn't go off-screen vertically
+			// If there's not enough space below, position above the button
+			const estimatedDialogHeight = 300;
+			if (top + estimatedDialogHeight > viewportHeight) {
+				top = rect.top - estimatedDialogHeight - 4; // Position above
+				// If still doesn't fit, position at top of viewport
+				if (top < 16) {
+					top = 16;
+				}
+			}
+
+			editorPosition = { top, left };
+		}
+
 		isEditing = true;
 	}
 
@@ -85,11 +121,14 @@
 				</div>
 			{/if}
 
-			<button onclick={startEdit} class="btn-edit" title="Editar conexiones">✏️</button>
+			<button bind:this={editButton} onclick={startEdit} class="btn-edit" title="Editar conexiones">✏️</button>
 		</div>
 	{:else}
-		<!-- Edit mode -->
-		<div class="connections-editor">
+		<!-- Edit mode backdrop -->
+		<div class="editor-backdrop" onclick={cancel}></div>
+
+		<!-- Edit mode dialog -->
+		<div class="connections-editor" style="top: {editorPosition.top}px; left: {editorPosition.left}px;">
 			<div class="editor-header">
 				<span class="editor-title">Conexiones</span>
 				<button onclick={addConnection} class="btn-add-small">+ Agregar</button>
@@ -195,19 +234,30 @@
 		opacity: 1;
 	}
 
+	/* Backdrop overlay */
+	.editor-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.3);
+		z-index: 999;
+		cursor: pointer;
+	}
+
 	/* Edit mode */
 	.connections-editor {
-		position: absolute;
-		top: -8px;
-		left: -8px;
-		right: -8px;
+		position: fixed;
 		background: white;
 		border: 2px solid #3b82f6;
 		border-radius: 0.375rem;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-		z-index: 100;
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+		z-index: 1000;
 		padding: 0.75rem;
-		min-width: 400px;
+		width: 400px;
+		max-height: calc(100vh - 32px);
+		overflow-y: auto;
 	}
 
 	.editor-header {
@@ -245,7 +295,7 @@
 		flex-direction: column;
 		gap: 0.5rem;
 		margin-bottom: 0.75rem;
-		max-height: 200px;
+		max-height: 300px;
 		overflow-y: auto;
 	}
 
