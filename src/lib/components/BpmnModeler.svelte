@@ -12,9 +12,10 @@
 		class?: string;
 		editable?: boolean;
 		onChange?: (xml: string) => void;
+		onViewportChange?: (viewbox: any) => void;
 	}
 
-	let { flowDefinition, xml, class: className, editable = true, onChange }: Props = $props();
+	let { flowDefinition, xml, class: className, editable = true, onChange, onViewportChange }: Props = $props();
 
 	// State
 	let container: HTMLDivElement;
@@ -23,6 +24,7 @@
 	let error = $state<string | null>(null);
 	let isRelayouting = false;
 	let changeListener: any = null;
+	let viewportListener: any = null;
 
 	/**
 	 * Setup or remove change listener based on editable state
@@ -54,6 +56,29 @@
 	}
 
 	/**
+	 * Setup viewport change listener
+	 */
+	function setupViewportListener() {
+		if (!modeler) return;
+
+		// Remove existing listener if any
+		if (viewportListener) {
+			modeler.off('canvas.viewbox.changed', viewportListener);
+			viewportListener = null;
+		}
+
+		// Add listener if onViewportChange callback exists
+		if (onViewportChange) {
+			viewportListener = (event: any) => {
+				const canvas = modeler.get('canvas');
+				const viewbox = canvas.viewbox();
+				onViewportChange(viewbox);
+			};
+			modeler.on('canvas.viewbox.changed', viewportListener);
+		}
+	}
+
+	/**
 	 * Initialize BPMN modeler or viewer
 	 */
 	async function initModeler() {
@@ -69,6 +94,9 @@
 
 			// Setup change listener based on editable state
 			setupChangeListener();
+
+			// Setup viewport listener
+			setupViewportListener();
 
 			loading = false;
 
@@ -231,6 +259,13 @@
 
 	onDestroy(() => {
 		if (modeler) {
+			// Clean up listeners
+			if (changeListener) {
+				modeler.off('commandStack.changed', changeListener);
+			}
+			if (viewportListener) {
+				modeler.off('canvas.viewbox.changed', viewportListener);
+			}
 			modeler.destroy();
 			modeler = null;
 		}

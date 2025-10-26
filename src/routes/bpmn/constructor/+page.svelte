@@ -37,6 +37,7 @@
 	let currentXml = $state<string | null>(null);
 	let modoEdicion = $state(false);
 	let viewMode = $state<ViewMode>('split');
+	let viewportX = $state(0);
 
 	// Convert table rows to BPMN flow definition
 	function rowsToFlowDefinition(tableRows: TableRow[]): BPMNFlowDefinition {
@@ -103,7 +104,12 @@
 		}
 	}
 
-	// Calculate swimlanes based on responsables
+	// Handle viewport changes (pan/zoom/scroll)
+	function handleViewportChange(viewbox: any) {
+		viewportX = viewbox.x;
+	}
+
+	// Calculate swimlanes based on responsables (vertical columns)
 	let swimlanes = $derived(() => {
 		if (!rows || rows.length === 0) return [];
 
@@ -122,20 +128,17 @@
 			responsableGroups.get(responsable)!.push(row);
 		});
 
-		// Create swimlane objects matching auto-layout
-		const swimlaneHeight = 250;
-		const swimlanePadding = 100;
-		let currentYBase = 100;
+		// Create vertical swimlane columns matching auto-layout
+		const swimlaneWidth = 300; // Width of each column
+		const swimlanePadding = 50; // Horizontal padding within swimlane
+		let currentXBase = 100;
 
-		return Array.from(responsableGroups.keys()).map((responsable) => ({
-			responsable,
-			yPosition: currentYBase,
-			height: swimlaneHeight
-		})).map((lane, index) => {
-			const yPos = 100 + index * swimlaneHeight;
+		return Array.from(responsableGroups.keys()).map((responsable, index) => {
+			const xPos = currentXBase + index * swimlaneWidth + swimlanePadding;
 			return {
-				...lane,
-				yPosition: yPos
+				responsable,
+				xPosition: xPos,
+				width: swimlaneWidth
 			};
 		});
 	});
@@ -260,7 +263,7 @@
 				{#if flujoActual || currentXml}
 					<!-- Swimlane Headers Overlay -->
 					{#if swimlanes().length > 0}
-						<SwimlaneHeaders swimlanes={swimlanes()} />
+						<SwimlaneHeaders swimlanes={swimlanes()} viewportX={viewportX} />
 					{/if}
 
 					<BpmnModeler
@@ -268,6 +271,7 @@
 						xml={currentXml}
 						editable={modoEdicion}
 						onChange={handleDiagramChange}
+						onViewportChange={handleViewportChange}
 						class="diagram-viewer"
 					/>
 				{:else}

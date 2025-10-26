@@ -1,76 +1,90 @@
 <script lang="ts">
 	interface Swimlane {
 		responsable: string;
-		yPosition: number;
-		height: number;
+		xPosition: number;
+		width: number;
 	}
 
 	interface Props {
 		swimlanes: Swimlane[];
+		viewportX?: number;
 	}
 
-	let { swimlanes }: Props = $props();
+	let { swimlanes, viewportX = 0 }: Props = $props();
 </script>
 
-<div class="swimlane-headers">
+<div class="swimlane-columns">
 	{#each swimlanes as lane}
 		<div
-			class="swimlane-header"
-			style="top: {lane.yPosition}px; height: {lane.height}px;"
+			class="swimlane-column"
+			style="left: {lane.xPosition - viewportX}px; width: {lane.width}px;"
 		>
-			<div class="header-content">
+			<div class="column-header">
 				<span class="responsable-icon">👤</span>
 				<span class="responsable-name">{lane.responsable}</span>
 			</div>
+			<div class="column-border"></div>
 		</div>
 	{/each}
 </div>
 
 <style>
-	.swimlane-headers {
+	.swimlane-columns {
 		position: absolute;
 		left: 0;
 		top: 0;
-		width: 180px;
+		width: 100%;
 		height: 100%;
 		pointer-events: none;
-		z-index: 10;
+		z-index: 5;
 	}
 
-	.swimlane-header {
+	.swimlane-column {
 		position: absolute;
-		left: 0;
-		width: 100%;
-		border-bottom: 2px solid #cbd5e1;
-		background: linear-gradient(to right, rgba(248, 250, 252, 0.95) 0%, rgba(248, 250, 252, 0) 100%);
+		top: 0;
+		height: 100%;
 		display: flex;
-		align-items: center;
-		padding: 0.75rem;
-		backdrop-filter: blur(4px);
+		flex-direction: column;
 	}
 
-	.header-content {
+	.column-border {
+		position: absolute;
+		right: 0;
+		top: 60px;
+		bottom: 0;
+		width: 2px;
+		background: linear-gradient(to bottom, #cbd5e1 0%, rgba(203, 213, 225, 0.3) 100%);
+	}
+
+	.column-header {
+		position: sticky;
+		top: 0;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.25rem;
+		padding: 0.75rem 0.5rem;
 		font-weight: 600;
 		font-size: 0.875rem;
 		color: #475569;
-		background: white;
-		padding: 0.5rem 0.75rem;
-		border-radius: 0.375rem;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		background: linear-gradient(to bottom, rgba(248, 250, 252, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+		border-bottom: 2px solid #cbd5e1;
+		backdrop-filter: blur(8px);
 		pointer-events: auto;
-		white-space: nowrap;
+		z-index: 10;
+		text-align: center;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 	}
 
 	.responsable-icon {
-		font-size: 1rem;
+		font-size: 1.25rem;
 	}
 
 	.responsable-name {
-		max-width: 120px;
+		max-width: 100%;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		white-space: nowrap;
+		writing-mode: horizontal-tb;
 	}
 </style>

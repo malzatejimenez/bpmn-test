@@ -275,13 +275,13 @@ export class BpmnBuilder {
 	}
 
 	/**
-	 * Auto-layout nodes in a left-to-right flow, grouped by responsable (swimlanes)
+	 * Auto-layout nodes in a top-to-bottom flow, grouped by responsable (vertical swimlanes/columns)
 	 */
 	autoLayout(flowDefinition: BPMNFlowDefinition): BPMNFlowDefinition {
 		const layouted = { ...flowDefinition };
 		const nodeMap = new Map<string, BPMNNode>();
 
-		// Group nodes by responsable (swimlanes)
+		// Group nodes by responsable (vertical swimlanes/columns)
 		const responsableGroups = new Map<string, BPMNNode[]>();
 		const defaultResponsable = 'Sin asignar';
 
@@ -300,17 +300,18 @@ export class BpmnBuilder {
 		const startNodes = layouted.nodes.filter((n) => n.type === 'startEvent');
 		const visitedNodes = new Set<string>();
 
-		const horizontalSpacing = 200;
-		const swimlaneHeight = 250; // Height of each swimlane/responsable
-		const swimlanePadding = 100; // Vertical padding within swimlane
+		const verticalSpacing = 150; // Spacing between nodes vertically (top to bottom)
+		const swimlaneWidth = 300; // Width of each swimlane/column
 
-		// Assign Y position ranges for each responsable
-		const responsableYPositions = new Map<string, number>();
-		let currentYBase = 100;
+		// Assign X position ranges for each responsable (columns)
+		const responsableXPositions = new Map<string, number>();
+		let currentXBase = 100;
 
 		Array.from(responsableGroups.keys()).forEach((responsable) => {
-			responsableYPositions.set(responsable, currentYBase + swimlanePadding);
-			currentYBase += swimlaneHeight;
+			// Center the activity horizontally in the column
+			const xPos = currentXBase + (swimlaneWidth / 2);
+			responsableXPositions.set(responsable, xPos);
+			currentXBase += swimlaneWidth;
 		});
 
 		// Build adjacency map
@@ -322,24 +323,31 @@ export class BpmnBuilder {
 			adjacencyMap.get(conn.from)!.push(conn.to);
 		}
 
-		// BFS layout from start events, respecting responsable lanes
-		const queue: Array<{ nodeId: string; x: number }> = [];
+		// Track Y positions per responsable to handle multiple nodes in same column
+		const responsableYPositions = new Map<string, number>();
+		Array.from(responsableGroups.keys()).forEach((responsable) => {
+			responsableYPositions.set(responsable, 100); // Start Y position for each column
+		});
+
+		// BFS layout from start events, respecting responsable columns
+		const queue: Array<{ nodeId: string; y: number }> = [];
 
 		// Position start events
 		startNodes.forEach((node) => {
 			const responsable = node.responsable && node.responsable.trim() !== ''
 				? node.responsable
 				: defaultResponsable;
+			const x = responsableXPositions.get(responsable) || 100;
 			const y = responsableYPositions.get(responsable) || 100;
 
-			node.position = { x: 100, y };
+			node.position = { x, y };
 			nodeMap.set(node.id, node);
 			visitedNodes.add(node.id);
-			queue.push({ nodeId: node.id, x: 100 });
-		});
+			queue.push({ nodeId: node.id, y });
 
-		// Track X positions per responsable to handle multiple nodes in same lane
-		const responsableXPositions = new Map<string, number>();
+			// Update Y position for this responsable's column
+			responsableYPositions.set(responsable, y + verticalSpacing);
+		});
 
 		// BFS to position remaining nodes
 		while (queue.length > 0) {
@@ -355,16 +363,19 @@ export class BpmnBuilder {
 							? node.responsable
 							: defaultResponsable;
 
-						// Get Y position for this responsable's lane
-						const y = responsableYPositions.get(responsable) || 100;
+						// Get X position for this responsable's column
+						const x = responsableXPositions.get(responsable) || 100;
 
-						// Calculate X position (next in flow)
-						const x = current.x + horizontalSpacing;
+						// Get and update Y position for this column
+						const y = responsableYPositions.get(responsable) || 100;
 
 						node.position = { x, y };
 						nodeMap.set(node.id, node);
 						visitedNodes.add(nextNodeId);
-						queue.push({ nodeId: nextNodeId, x });
+						queue.push({ nodeId: nextNodeId, y });
+
+						// Update Y position for next node in this column
+						responsableYPositions.set(responsable, y + verticalSpacing);
 					}
 				}
 			});
