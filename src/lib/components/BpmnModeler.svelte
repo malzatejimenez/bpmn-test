@@ -21,6 +21,7 @@
 	let modeler = $state<any>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let isRelayouting = false;
 
 	/**
 	 * Initialize BPMN modeler or viewer
@@ -29,26 +30,21 @@
 		if (!container || !browser) return;
 
 		try {
-			// Dynamically import Modeler or Viewer based on editable prop
-			if (editable) {
-				const { default: Modeler } = await import('bpmn-js/lib/Modeler');
-				modeler = new Modeler({
-					container: container,
-					height: '100%'
-				});
+			// Always use Modeler to have access to modeling features for relayout
+			const { default: Modeler } = await import('bpmn-js/lib/Modeler');
+			modeler = new Modeler({
+				container: container,
+				height: '100%'
+			});
 
-				// Listen to changes if editable
+			// Listen to changes only if editable
+			if (editable) {
 				modeler.on('commandStack.changed', async () => {
-					if (onChange) {
+					// Skip onChange during relayout to avoid infinite loops
+					if (onChange && !isRelayouting) {
 						const { xml: currentXml } = await modeler.saveXML({ format: true });
 						onChange(currentXml);
 					}
-				});
-			} else {
-				const BpmnJS = (await import('bpmn-js')).default;
-				modeler = new BpmnJS({
-					container: container,
-					height: '100%'
 				});
 			}
 
@@ -68,6 +64,50 @@
 	}
 
 	/**
+	 * Relayout all connections to use Manhattan routing
+	 * by simulating a micro-movement of each shape element
+	 */
+	function relayoutConnections() {
+		if (!modeler) return;
+
+		// Disable change listener temporarily
+		isRelayouting = true;
+
+		try {
+			const elementRegistry = modeler.get('elementRegistry');
+			const modeling = modeler.get('modeling');
+
+			// Get all shape elements (tasks, events, gateways, etc.)
+			const shapes = elementRegistry.filter(
+				(element: any) =>
+					element.type &&
+					!element.type.includes('SequenceFlow') &&
+					!element.type.includes('Label') &&
+					element.waypoints === undefined
+			);
+
+			// Move each shape by 1px and back to trigger connection re-layout
+			shapes.forEach((shape: any) => {
+				if (shape.x !== undefined && shape.y !== undefined) {
+					// Move element 1px
+					modeling.moveElements([shape], { x: 1, y: 0 });
+					// Move back immediately
+					modeling.moveElements([shape], { x: -1, y: 0 });
+				}
+			});
+
+			// Clear the undo stack to hide these micro-movements
+			const commandStack = modeler.get('commandStack');
+			commandStack.clear();
+		} catch (err) {
+			console.error('Error relayouting connections:', err);
+		} finally {
+			// Re-enable change listener
+			isRelayouting = false;
+		}
+	}
+
+	/**
 	 * Load XML into modeler
 	 */
 	async function loadXML(xmlString: string) {
@@ -75,6 +115,9 @@
 
 		try {
 			await modeler.importXML(xmlString);
+
+			// Relayout connections for better visuals
+			relayoutConnections();
 
 			// Fit viewport to diagram
 			const canvas = modeler.get('canvas');
@@ -309,10 +352,20 @@
 
 	/* Modeler-specific styles */
 	:global(.bpmn-modeler-wrapper.editable .djs-palette) {
+		display: block;
 		border-right: 1px solid #ccc;
 	}
 
 	:global(.bpmn-modeler-wrapper.editable .djs-context-pad) {
 		display: block;
+	}
+
+	/* Hide palette and context pad in readonly mode */
+	:global(.bpmn-modeler-wrapper:not(.editable) .djs-palette) {
+		display: none;
+	}
+
+	:global(.bpmn-modeler-wrapper:not(.editable) .djs-context-pad) {
+		display: none;
 	}
 </style>
