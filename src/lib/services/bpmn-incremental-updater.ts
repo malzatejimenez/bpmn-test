@@ -124,10 +124,10 @@ export class BpmnIncrementalUpdater {
 	/**
 	 * Apply a single change to the BPMN modeler
 	 */
-	async applyChange(modeler: any, change: Change): Promise<void> {
+	async applyChange(modeler: any, change: Change, allRows: TableRow[]): Promise<void> {
 		switch (change.type) {
 			case 'node_updated':
-				await this.applyNodeUpdate(modeler, change);
+				await this.applyNodeUpdate(modeler, change, allRows);
 				break;
 			case 'connection_added':
 				await this.applyConnectionAdd(modeler, change);
@@ -149,7 +149,11 @@ export class BpmnIncrementalUpdater {
 	/**
 	 * Update properties of an existing node
 	 */
-	private async applyNodeUpdate(modeler: any, change: Change): Promise<void> {
+	private async applyNodeUpdate(
+		modeler: any,
+		change: Change,
+		allRows: TableRow[]
+	): Promise<void> {
 		if (!change.row || !change.nodeId) return;
 
 		const elementRegistry = modeler.get('elementRegistry');
@@ -169,7 +173,8 @@ export class BpmnIncrementalUpdater {
 		}
 
 		// Update responsable (stored as custom property)
-		if (change.row.responsable !== change.oldRow?.responsable) {
+		const responsableChanged = change.row.responsable !== change.oldRow?.responsable;
+		if (responsableChanged) {
 			updates.responsable = change.row.responsable;
 		}
 
@@ -177,8 +182,48 @@ export class BpmnIncrementalUpdater {
 			modeling.updateProperties(element, updates);
 		}
 
+		// If responsable changed, move element to new column
+		if (responsableChanged) {
+			const newX = this.calculateXForResponsable(change.row.responsable || '', allRows);
+			const currentX = element.x;
+			const deltaX = newX - currentX;
+
+			if (Math.abs(deltaX) > 1) {
+				// Only move if significant difference
+				modeling.moveElements([element], { x: deltaX, y: 0 });
+			}
+		}
+
 		// Note: Type changes would require replacing the element entirely
 		// which is complex, so we'll skip that for now
+	}
+
+	/**
+	 * Calculate X position for a given responsable based on swimlane layout
+	 */
+	private calculateXForResponsable(responsable: string, allRows: TableRow[]): number {
+		const swimlaneWidth = 300;
+		const startX = 100;
+		const defaultResponsable = 'Sin asignar';
+
+		// Get unique responsables in order
+		const responsables = Array.from(
+			new Set(
+				allRows.map((r) => (r.responsable && r.responsable.trim() !== '' ? r.responsable : defaultResponsable))
+			)
+		);
+
+		// Find index of this responsable
+		const targetResponsable = responsable && responsable.trim() !== '' ? responsable : defaultResponsable;
+		const index = responsables.indexOf(targetResponsable);
+
+		if (index === -1) {
+			// Responsable not found, use default column
+			return startX + swimlaneWidth / 2;
+		}
+
+		// Calculate X position (center of column)
+		return startX + swimlaneWidth / 2 + index * swimlaneWidth;
 	}
 
 	/**
@@ -253,7 +298,7 @@ export class BpmnIncrementalUpdater {
 	/**
 	 * Apply all changes to the modeler
 	 */
-	async applyChanges(modeler: any, changes: Change[]): Promise<boolean> {
+	async applyChanges(modeler: any, changes: Change[], allRows: TableRow[]): Promise<boolean> {
 		// Check if any changes require full regeneration
 		const requiresFullRegeneration = changes.some((c) => c.type === 'node_added');
 
@@ -264,7 +309,7 @@ export class BpmnIncrementalUpdater {
 
 		// Apply all changes incrementally
 		for (const change of changes) {
-			await this.applyChange(modeler, change);
+			await this.applyChange(modeler, change, allRows);
 		}
 
 		return true;

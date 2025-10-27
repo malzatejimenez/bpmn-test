@@ -144,7 +144,7 @@
 			const changes = bpmnIncrementalUpdater.detectChanges(previousRows, newRows);
 
 			if (changes.length > 0) {
-				const success = await bpmnIncrementalUpdater.applyChanges(modelerInstance, changes);
+				const success = await bpmnIncrementalUpdater.applyChanges(modelerInstance, changes, newRows);
 
 				if (success) {
 					previousRows = JSON.parse(JSON.stringify(newRows));
