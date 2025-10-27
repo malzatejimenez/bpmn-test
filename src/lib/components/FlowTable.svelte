@@ -4,6 +4,9 @@
 	import NodeTypeSelect from './NodeTypeSelect.svelte';
 	import ConnectionsCell from './ConnectionsCell.svelte';
 	import ResponsableAutocomplete from './ResponsableAutocomplete.svelte';
+	import { flip } from 'svelte/animate';
+	import { fade } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 
 	interface Props {
 		rows: TableRow[];
@@ -11,6 +14,7 @@
 	}
 
 	let { rows, onChange }: Props = $props();
+	let lastMovedRowId = $state<string | null>(null);
 
 	let nextRowNumber = $derived(rows.length > 0 ? Math.max(...rows.map((r) => r.rowNumber)) + 1 : 1);
 
@@ -32,6 +36,58 @@
 	function deleteRow(rowNumber: number) {
 		const filtered = rows.filter((r) => r.rowNumber !== rowNumber);
 		onChange(filtered);
+	}
+
+	// Move row up
+	function moveRowUp(rowNumber: number) {
+		const index = rows.findIndex((r) => r.rowNumber === rowNumber);
+		if (index <= 0) return; // Already at top
+
+		const newRows = [...rows];
+		// Store the ID of the row that moved
+		const movedRow = newRows[index];
+
+		// Swap with previous row
+		[newRows[index - 1], newRows[index]] = [newRows[index], newRows[index - 1]];
+
+		// Renumber all rows
+		newRows.forEach((row, i) => {
+			row.rowNumber = i + 1;
+		});
+
+		// Highlight moved row
+		lastMovedRowId = movedRow.id;
+		setTimeout(() => {
+			lastMovedRowId = null;
+		}, 600);
+
+		onChange(newRows);
+	}
+
+	// Move row down
+	function moveRowDown(rowNumber: number) {
+		const index = rows.findIndex((r) => r.rowNumber === rowNumber);
+		if (index === -1 || index >= rows.length - 1) return; // Already at bottom
+
+		const newRows = [...rows];
+		// Store the ID of the row that moved
+		const movedRow = newRows[index];
+
+		// Swap with next row
+		[newRows[index], newRows[index + 1]] = [newRows[index + 1], newRows[index]];
+
+		// Renumber all rows
+		newRows.forEach((row, i) => {
+			row.rowNumber = i + 1;
+		});
+
+		// Highlight moved row
+		lastMovedRowId = movedRow.id;
+		setTimeout(() => {
+			lastMovedRowId = null;
+		}, 600);
+
+		onChange(newRows);
 	}
 
 	// Update row field
@@ -85,8 +141,12 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each rows as row (row.rowNumber)}
-					<tr>
+				{#each rows as row (row.id)}
+					<tr
+						animate:flip={{ duration: 300, easing: cubicOut }}
+						transition:fade={{ duration: 150 }}
+						class:row-moved={row.id === lastMovedRowId}
+					>
 						<!-- Row Number -->
 						<td class="col-number">{row.rowNumber}</td>
 
@@ -148,13 +208,31 @@
 
 						<!-- Actions -->
 						<td class="col-actions">
-							<button
-								onclick={() => deleteRow(row.rowNumber)}
-								class="btn-delete"
-								title="Eliminar actividad"
-							>
-								🗑️
-							</button>
+							<div class="action-buttons">
+								<button
+									onclick={() => moveRowUp(row.rowNumber)}
+									class="btn-reorder"
+									disabled={row.rowNumber === 1}
+									title="Mover arriba"
+								>
+									▲
+								</button>
+								<button
+									onclick={() => moveRowDown(row.rowNumber)}
+									class="btn-reorder"
+									disabled={row.rowNumber === rows.length}
+									title="Mover abajo"
+								>
+									▼
+								</button>
+								<button
+									onclick={() => deleteRow(row.rowNumber)}
+									class="btn-delete"
+									title="Eliminar actividad"
+								>
+									🗑️
+								</button>
+							</div>
 						</td>
 					</tr>
 				{/each}
@@ -267,7 +345,7 @@
 	}
 
 	.col-actions {
-		width: 80px;
+		width: 120px;
 		text-align: center;
 	}
 
@@ -302,6 +380,37 @@
 	}
 
 	/* Action buttons */
+	.action-buttons {
+		display: flex;
+		gap: 0.25rem;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.btn-reorder {
+		background: none;
+		border: 1px solid #cbd5e1;
+		border-radius: 0.25rem;
+		cursor: pointer;
+		font-size: 0.75rem;
+		padding: 0.25rem 0.375rem;
+		color: #64748b;
+		transition:
+			all 0.2s;
+		line-height: 1;
+	}
+
+	.btn-reorder:hover:not(:disabled) {
+		background: #f1f5f9;
+		color: #334155;
+		border-color: #94a3b8;
+	}
+
+	.btn-reorder:disabled {
+		opacity: 0.3;
+		cursor: not-allowed;
+	}
+
 	.btn-delete {
 		background: none;
 		border: none;
@@ -317,6 +426,21 @@
 	.btn-delete:hover {
 		opacity: 1;
 		transform: scale(1.1);
+	}
+
+	/* Row animations */
+	@keyframes flash-highlight {
+		0%,
+		100% {
+			background-color: transparent;
+		}
+		50% {
+			background-color: #fef3c7;
+		}
+	}
+
+	.row-moved {
+		animation: flash-highlight 0.6s ease-out;
 	}
 
 	/* Empty state */
