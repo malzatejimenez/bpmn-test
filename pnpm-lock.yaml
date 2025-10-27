@@ -17,9 +17,21 @@ importers:
       bpmn-moddle:
         specifier: ^9.0.4
         version: 9.0.4
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       diagram-js:
         specifier: ^15.4.0
         version: 15.4.0
+      shadcn-svelte:
+        specifier: ^1.0.10
+        version: 1.0.10
+      tailwind-merge:
+        specifier: ^3.3.1
+        version: 3.3.1
+      tailwind-variants:
+        specifier: ^3.1.1
+        version: 3.1.1(tailwind-merge@3.3.1)(tailwindcss@4.1.16)
     devDependencies:
       '@eslint/compat':
         specifier: ^1.4.0
@@ -897,6 +909,10 @@ packages:
     resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
     engines: {node: '>=16'}
 
+  commander@14.0.2:
+    resolution: {integrity: sha512-TywoWNNRbhoD0BXs1P3ZEScW8W5iKrnbithIl0YH+uCmBd0QpPOA8yc82DS3BIE5Ma6FnBVUsJ7wVUDz4dvOWQ==}
+    engines: {node: '>=20'}
+
   comment-json@4.4.1:
     resolution: {integrity: sha512-r1To31BQD5060QdkC+Iheai7gHwoSZobzunqkf2/kQ6xIAfJyrKNAFUwdKvkK7Qgu7pVTKQEa7ok7Ed3ycAJgg==}
     engines: {node: '>= 6'}
@@ -1399,6 +1415,9 @@ packages:
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
+  node-fetch-native@1.6.7:
+    resolution: {integrity: sha512-g9yhqoedzIUm0nTnTqAQvueMPVOuIY16bqgAJJC8XOOubYFNwz6IER9qs0Gq2Xd0+CecCKFjtdDTMA4u4xG06Q==}
+
   object-refs@0.4.0:
     resolution: {integrity: sha512-6kJqKWryKZmtte6QYvouas0/EIJKPI1/MMIuRsiBlNuhIMfqYTggzX2F1AJ2+cDs288xyi9GL7FyasHINR98BQ==}
 
@@ -1623,6 +1642,10 @@ packages:
   set-cookie-parser@2.7.1:
     resolution: {integrity: sha512-IOc8uWeOZgnb3ptbCURJWNjWUPcO3ZnTTdzsurqERrP6nPyv+paC55vJM0LpOlT2ne+Ix+9+CRG1MNLlyZ4GjQ==}
 
+  shadcn-svelte@1.0.10:
+    resolution: {integrity: sha512-gwDMBIhTwl/eEfP3e4fMjEkQU+dOLnAH961HhoqVF5bY6mj9g4wJq76aYHpwpVb5Ux1Gt9E1KMy3slp/YD/rSA==}
+    hasBin: true
+
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
     engines: {node: '>=8'}
@@ -1684,6 +1707,19 @@ packages:
   svelte@5.42.1:
     resolution: {integrity: sha512-gc0yfYY7OcuFbK2k/R/cHYYoN7A3SvYsnWHiWYayEV7OZpjSKyVHA1Ex0tW5eEbfQui6guN+sZ2whvhuz+qHpg==}
     engines: {node: '>=18'}
+
+  tailwind-merge@3.3.1:
+    resolution: {integrity: sha512-gBXpgUm/3rp1lMZZrM/w7D8GKqshif0zAymAhbCyIt8KMe+0v9DQ7cdYLR4FHH/cKpdTXb+A/tKKU3eolfsI+g==}
+
+  tailwind-variants@3.1.1:
+    resolution: {integrity: sha512-ftLXe3krnqkMHsuBTEmaVUXYovXtPyTK7ckEfDRXS8PBZx0bAUas+A0jYxuKA5b8qg++wvQ3d2MQ7l/xeZxbZQ==}
+    engines: {node: '>=16.x', pnpm: '>=7.x'}
+    peerDependencies:
+      tailwind-merge: '>=3.0.0'
+      tailwindcss: '*'
+    peerDependenciesMeta:
+      tailwind-merge:
+        optional: true
 
   tailwindcss@4.1.16:
     resolution: {integrity: sha512-pONL5awpaQX4LN5eiv7moSiSPd/DLDzKVRJz8Q9PgzmAdd1R4307GQS2ZpfiN7ZmekdQrfhZZiSE5jkLR4WNaA==}
@@ -2622,6 +2658,8 @@ snapshots:
 
   commander@11.1.0: {}
 
+  commander@14.0.2: {}
+
   comment-json@4.4.1:
     dependencies:
       array-timsort: 1.0.3
@@ -3076,6 +3114,8 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
+  node-fetch-native@1.6.7: {}
+
   object-refs@0.4.0: {}
 
   optionator@0.9.4:
@@ -3231,6 +3271,12 @@ snapshots:
 
   set-cookie-parser@2.7.1: {}
 
+  shadcn-svelte@1.0.10:
+    dependencies:
+      commander: 14.0.2
+      node-fetch-native: 1.6.7
+      postcss: 8.5.6
+
   shebang-command@2.0.0:
     dependencies:
       shebang-regex: 3.0.0
@@ -3305,6 +3351,14 @@ snapshots:
       locate-character: 3.0.0
       magic-string: 0.30.21
       zimmerframe: 1.1.4
+
+  tailwind-merge@3.3.1: {}
+
+  tailwind-variants@3.1.1(tailwind-merge@3.3.1)(tailwindcss@4.1.16):
+    dependencies:
+      tailwindcss: 4.1.16
+    optionalDependencies:
+      tailwind-merge: 3.3.1
 
   tailwindcss@4.1.16: {}
 

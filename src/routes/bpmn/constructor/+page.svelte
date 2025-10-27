@@ -5,6 +5,7 @@
 	import FlowTable from '$lib/components/FlowTable.svelte';
 	import ViewSwitcher from '$lib/components/ViewSwitcher.svelte';
 	import SwimlaneHeaders from '$lib/components/SwimlaneHeaders.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import type { TableRow } from '$lib/types/flow-table.types';
 	import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
 	import { bpmnBuilder } from '$lib/services/bpmn-builder';
@@ -43,6 +44,11 @@
 	let diagramKey = $state(0); // Key to force diagram re-render
 	let modelerInstance = $state<any>(null); // Reference to BpmnModeler instance
 	let isApplyingIncrementalUpdate = $state(false); // Flag to prevent update loops
+
+	// State for confirmation dialog
+	let showConfirmDialog = $state(false);
+	let pendingChange = $state<{elementId: string; oldPosition: {x: number; y: number}; newPosition: {x: number; y: number}; newResponsable: string; currentResponsable: string} | null>(null);
+	let elementPositions = $state<Map<string, {x: number; y: number}>>(new Map());
 
 	// Convert table rows to BPMN flow definition
 	function rowsToFlowDefinition(tableRows: TableRow[]): BPMNFlowDefinition {
@@ -172,10 +178,10 @@
 	}
 
 	// Handle element moved in diagram (detect column changes)
-	function handleElementMoved(elementId: string, newPosition: { x: number; y: number }) {
-		if (isApplyingIncrementalUpdate) return; // Prevent loops
-
-		console.log('Element moved:', elementId, newPosition);
+	function handleElementMoved(elementId: string, newPosition: { x: number; y: number }, oldPosition: { x: number; y: number }) {
+		// Note: We do NOT check isApplyingIncrementalUpdate here because
+		// element moves in the diagram should ALWAYS update the table,
+		// regardless of whether we're in the middle of an incremental update
 
 		// Find the row with this element ID
 		const rowIndex = rows.findIndex(r => r.id === elementId);
@@ -188,27 +194,69 @@
 		const newResponsable = determineResponsableFromPosition(newPosition.x);
 		const currentResponsable = rows[rowIndex].responsable || 'Sin asignar';
 
-		console.log('Column change detected:', currentResponsable, '→', newResponsable);
-
-		// If responsable changed, update the table
+		// If responsable changed, show confirmation dialog
 		if (newResponsable !== currentResponsable) {
-			const updatedRows = [...rows];
-			updatedRows[rowIndex].responsable = newResponsable === 'Sin asignar' ? '' : newResponsable;
-
-			// Set flag to prevent triggering incremental update back to diagram
-			isApplyingIncrementalUpdate = true;
-
-			// Update rows
-			rows = updatedRows;
-			previousRows = JSON.parse(JSON.stringify(updatedRows));
-
-			console.log('✓ Responsable updated in table:', newResponsable);
-
-			// Reset flag after a short delay
-			setTimeout(() => {
-				isApplyingIncrementalUpdate = false;
-			}, 100);
+			pendingChange = {
+				elementId,
+				oldPosition,
+				newPosition,
+				newResponsable,
+				currentResponsable
+			};
+			showConfirmDialog = true;
 		}
+	}
+
+	// Apply the pending responsable change
+	function applyResponsableChange() {
+		if (!pendingChange) return;
+
+		const rowIndex = rows.findIndex(r => r.id === pendingChange.elementId);
+		if (rowIndex === -1) return;
+
+		const updatedRows = [...rows];
+		updatedRows[rowIndex].responsable = pendingChange.newResponsable === 'Sin asignar' ? '' : pendingChange.newResponsable;
+
+		// Set flag to prevent triggering incremental update back to diagram
+		isApplyingIncrementalUpdate = true;
+
+		// Update rows
+		rows = updatedRows;
+		previousRows = JSON.parse(JSON.stringify(updatedRows));
+
+		// Reset flag after a short delay
+		setTimeout(() => {
+			isApplyingIncrementalUpdate = false;
+		}, 100);
+
+		// Clear pending change
+		pendingChange = null;
+	}
+
+	// Cancel the pending responsable change
+	function cancelResponsableChange() {
+		if (!pendingChange || !modelerInstance) {
+			pendingChange = null;
+			return;
+		}
+
+		// Revert the element position in the diagram using bpmn-js modeling API
+		const modeling = modelerInstance.get('modeling');
+		const elementRegistry = modelerInstance.get('elementRegistry');
+
+		const element = elementRegistry.get(pendingChange.elementId);
+		if (element) {
+			// Calculate delta to move back to old position
+			const delta = {
+				x: pendingChange.oldPosition.x - element.x,
+				y: pendingChange.oldPosition.y - element.y
+			};
+
+			// Move element back
+			modeling.moveElements([element], delta);
+		}
+
+		pendingChange = null;
 	}
 
 	// Handle element changed in diagram (bidirectional sync: diagram → table)
@@ -580,3 +628,16 @@
 		font-size: 1.125rem;
 	}
 </style>
+
+<!-- Confirmation Dialog -->
+<ConfirmDialog
+	bind:open={showConfirmDialog}
+	title="Cambiar Responsable"
+	description={pendingChange
+		? `¿Desea cambiar el responsable de "${pendingChange.currentResponsable}" a "${pendingChange.newResponsable}"?`
+		: ''}
+	confirmText="Sí, cambiar"
+	cancelText="Cancelar"
+	onConfirm={applyResponsableChange}
+	onCancel={cancelResponsableChange}
+/>

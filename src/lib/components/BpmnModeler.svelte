@@ -15,7 +15,7 @@
 		onViewportChange?: (viewbox: any) => void;
 		onModelerReady?: (modelerInstance: any) => void;
 		onElementChanged?: (elementId: string, properties: any) => void;
-		onElementMoved?: (elementId: string, newPosition: { x: number; y: number }) => void;
+		onElementMoved?: (elementId: string, newPosition: { x: number; y: number }, oldPosition: { x: number; y: number }) => void;
 	}
 
 	let {
@@ -160,36 +160,55 @@
 	function setupElementMovedListener() {
 		if (!modeler) return;
 
-		// Remove existing listener if any
+		// Remove existing listeners if any
 		if (elementMovedListener) {
 			modeler.off('shape.move.end', elementMovedListener);
 			elementMovedListener = null;
 		}
 
-		// Add listener if onElementMoved callback exists
-		if (onElementMoved) {
-			elementMovedListener = (event: any) => {
-				// Skip during relayout to avoid loops
-				if (isRelayouting) return;
+		// Store original positions when move starts
+		let originalPositions = new Map<string, {x: number; y: number}>();
 
-				const shape = event.shape;
+		// Capture original position on move start
+		const moveStartListener = (event: any) => {
+			const shape = event.shape;
+			if (!shape || !shape.businessObject) return;
+			if (shape.type && shape.type.includes('SequenceFlow')) return;
+			if (shape.type && shape.type.includes('Label')) return;
 
-				// Only track flow nodes (not connections, labels, etc.)
-				if (!shape || !shape.businessObject) return;
-				if (shape.type && shape.type.includes('SequenceFlow')) return;
-				if (shape.type && shape.type.includes('Label')) return;
+			originalPositions.set(shape.id, { x: shape.x, y: shape.y });
+		};
 
-				// Get new position after move
-				const newPosition = {
-					x: shape.x,
-					y: shape.y
-				};
+		// Handle move end with both old and new positions
+		elementMovedListener = (event: any) => {
+			// Skip during relayout to avoid loops
+			if (isRelayouting) return;
 
-				console.log('Element moved:', shape.id, newPosition);
-				onElementMoved(shape.id, newPosition);
+			const shape = event.shape;
+
+			// Only track flow nodes (not connections, labels, etc.)
+			if (!shape || !shape.businessObject) return;
+			if (shape.type && shape.type.includes('SequenceFlow')) return;
+			if (shape.type && shape.type.includes('Label')) return;
+
+			// Get positions
+			const oldPosition = originalPositions.get(shape.id) || { x: shape.x, y: shape.y };
+			const newPosition = {
+				x: shape.x,
+				y: shape.y
 			};
-			modeler.on('shape.move.end', elementMovedListener);
-		}
+
+			// Clean up
+			originalPositions.delete(shape.id);
+
+			// Call callback if provided
+			if (onElementMoved) {
+				onElementMoved(shape.id, newPosition, oldPosition);
+			}
+		};
+
+		modeler.on('shape.move.start', moveStartListener);
+		modeler.on('shape.move.end', elementMovedListener);
 	}
 
 	/**
