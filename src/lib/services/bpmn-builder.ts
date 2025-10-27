@@ -218,7 +218,7 @@ export class BpmnBuilder {
 		const sourceNode = nodes.find((n) => n.id === connection.from);
 		const targetNode = nodes.find((n) => n.id === connection.to);
 
-		const waypoints = this.generateWaypoints(sourceNode, targetNode);
+		const waypoints = this.generateWaypoints(sourceNode, targetNode, nodes);
 
 		return this.moddle.create('bpmndi:BPMNEdge', {
 			id: `${connection.id}_di`,
@@ -228,9 +228,52 @@ export class BpmnBuilder {
 	}
 
 	/**
+	 * Find elements that are between source and target vertically
+	 */
+	private findElementsBetween(
+		sourceNode: BPMNNode,
+		targetNode: BPMNNode,
+		allNodes: BPMNNode[]
+	): BPMNNode[] {
+		if (!sourceNode.position || !targetNode.position) return [];
+
+		const sourceDims =
+			sourceNode.dimensions ||
+			BPMN_DEFAULT_DIMENSIONS[sourceNode.type] ||
+			{ width: 100, height: 80 };
+		const targetDims =
+			targetNode.dimensions ||
+			BPMN_DEFAULT_DIMENSIONS[targetNode.type] ||
+			{ width: 100, height: 80 };
+
+		const sourceBottom = sourceNode.position.y + sourceDims.height;
+		const targetTop = targetNode.position.y;
+
+		return allNodes.filter((node) => {
+			if (node.id === sourceNode.id || node.id === targetNode.id || !node.position) {
+				return false;
+			}
+
+			// Check if in same column (within tolerance of ±50px)
+			const xDiff = Math.abs(node.position.x - sourceNode.position.x);
+			if (xDiff > 50) {
+				return false;
+			}
+
+			// Check if vertically between source and target
+			const nodeDims =
+				node.dimensions || BPMN_DEFAULT_DIMENSIONS[node.type] || { width: 100, height: 80 };
+			const nodeTop = node.position.y;
+			const nodeBottom = node.position.y + nodeDims.height;
+
+			return nodeTop > sourceBottom && nodeBottom < targetTop;
+		});
+	}
+
+	/**
 	 * Generate waypoints for a connection
 	 */
-	private generateWaypoints(sourceNode?: BPMNNode, targetNode?: BPMNNode) {
+	private generateWaypoints(sourceNode?: BPMNNode, targetNode?: BPMNNode, allNodes?: BPMNNode[]) {
 		const waypoints: any[] = [];
 
 		const sourcePos = sourceNode?.position || { x: 100, y: 100 };
@@ -245,21 +288,118 @@ export class BpmnBuilder {
 			BPMN_DEFAULT_DIMENSIONS[targetNode?.type || 'task'] ||
 			{ width: 100, height: 80 };
 
-		// Start waypoint (right side of source)
-		waypoints.push(
-			this.moddle.create('dc:Point', {
-				x: sourcePos.x + (sourceDims.width || 100),
-				y: sourcePos.y + (sourceDims.height || 80) / 2
-			})
-		);
+		// Calculate connection points
+		const sourceCenterX = sourcePos.x + sourceDims.width / 2;
+		const sourceCenterY = sourcePos.y + sourceDims.height / 2;
+		const sourceBottom = sourcePos.y + sourceDims.height;
+		const sourceRight = sourcePos.x + sourceDims.width;
 
-		// End waypoint (left side of target)
-		waypoints.push(
-			this.moddle.create('dc:Point', {
-				x: targetPos.x,
-				y: targetPos.y + (targetDims.height || 80) / 2
-			})
-		);
+		const targetCenterX = targetPos.x + targetDims.width / 2;
+		const targetCenterY = targetPos.y + targetDims.height / 2;
+		const targetTop = targetPos.y;
+		const targetLeft = targetPos.x;
+
+		// Check if this is a vertical connection (same column, within ±50px tolerance)
+		const xDiff = Math.abs(sourcePos.x - targetPos.x);
+		const isVertical = xDiff < 50;
+
+		if (isVertical && sourceNode && targetNode && allNodes) {
+			// CASE 1 & 2: Vertical connection (same column)
+			const obstacles = this.findElementsBetween(sourceNode, targetNode, allNodes);
+
+			if (obstacles.length === 0) {
+				// CASE 1: Direct vertical connection - simple straight line
+				waypoints.push(
+					this.moddle.create('dc:Point', {
+						x: sourceCenterX,
+						y: sourceBottom
+					})
+				);
+
+				waypoints.push(
+					this.moddle.create('dc:Point', {
+						x: targetCenterX,
+						y: targetTop
+					})
+				);
+			} else {
+				// CASE 2: Vertical connection with obstacles - route around
+				const offset = 60; // Horizontal offset to route around
+
+				waypoints.push(
+					this.moddle.create('dc:Point', {
+						x: sourceCenterX,
+						y: sourceBottom
+					})
+				);
+
+				waypoints.push(
+					this.moddle.create('dc:Point', {
+						x: sourceCenterX,
+						y: sourceBottom + 20
+					})
+				);
+
+				waypoints.push(
+					this.moddle.create('dc:Point', {
+						x: sourceRight + offset,
+						y: sourceBottom + 20
+					})
+				);
+
+				waypoints.push(
+					this.moddle.create('dc:Point', {
+						x: sourceRight + offset,
+						y: targetTop - 20
+					})
+				);
+
+				waypoints.push(
+					this.moddle.create('dc:Point', {
+						x: targetCenterX,
+						y: targetTop - 20
+					})
+				);
+
+				waypoints.push(
+					this.moddle.create('dc:Point', {
+						x: targetCenterX,
+						y: targetTop
+					})
+				);
+			}
+		} else {
+			// CASE 3: Horizontal or diagonal connection
+			const midX = (sourceRight + targetLeft) / 2;
+
+			waypoints.push(
+				this.moddle.create('dc:Point', {
+					x: sourceRight,
+					y: sourceCenterY
+				})
+			);
+
+			waypoints.push(
+				this.moddle.create('dc:Point', {
+					x: midX,
+					y: sourceCenterY
+				})
+			);
+
+			waypoints.push(
+				this.moddle.create('dc:Point', {
+					x: midX,
+					y: targetCenterY
+				})
+			);
+
+			waypoints.push(
+				this.moddle.create('dc:Point', {
+					x: targetLeft,
+					y: targetCenterY
+				})
+			);
+		}
 
 		return waypoints;
 	}
