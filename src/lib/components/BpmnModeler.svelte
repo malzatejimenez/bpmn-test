@@ -13,9 +13,20 @@
 		editable?: boolean;
 		onChange?: (xml: string) => void;
 		onViewportChange?: (viewbox: any) => void;
+		onModelerReady?: (modelerInstance: any) => void;
+		onElementChanged?: (elementId: string, properties: any) => void;
 	}
 
-	let { flowDefinition, xml, class: className, editable = true, onChange, onViewportChange }: Props = $props();
+	let {
+		flowDefinition,
+		xml,
+		class: className,
+		editable = true,
+		onChange,
+		onViewportChange,
+		onModelerReady,
+		onElementChanged
+	}: Props = $props();
 
 	// State
 	let container: HTMLDivElement;
@@ -25,6 +36,7 @@
 	let isRelayouting = false;
 	let changeListener: any = null;
 	let viewportListener: any = null;
+	let elementChangedListener: any = null;
 
 	/**
 	 * Setup read-only mode by hiding palette and context pad
@@ -102,6 +114,44 @@
 	}
 
 	/**
+	 * Setup element changed listener for bidirectional sync
+	 */
+	function setupElementChangedListener() {
+		if (!modeler) return;
+
+		// Remove existing listener if any
+		if (elementChangedListener) {
+			modeler.off('element.changed', elementChangedListener);
+			elementChangedListener = null;
+		}
+
+		// Add listener if onElementChanged callback exists
+		if (onElementChanged) {
+			elementChangedListener = (event: any) => {
+				// Skip during relayout to avoid loops
+				if (isRelayouting) return;
+
+				const element = event.element;
+
+				// Only track changes to flow nodes (not connections, labels, etc.)
+				if (!element || !element.businessObject) return;
+				if (element.type && element.type.includes('SequenceFlow')) return;
+				if (element.type && element.type.includes('Label')) return;
+
+				// Extract relevant properties from business object
+				const properties = {
+					name: element.businessObject.name || '',
+					responsable: element.businessObject.responsable || ''
+				};
+
+				console.log('Element changed:', element.id, properties);
+				onElementChanged(element.id, properties);
+			};
+			modeler.on('element.changed', elementChangedListener);
+		}
+	}
+
+	/**
 	 * Initialize BPMN modeler or viewer
 	 */
 	async function initModeler() {
@@ -121,6 +171,9 @@
 			// Setup viewport listener
 			setupViewportListener();
 
+			// Setup element changed listener for bidirectional sync
+			setupElementChangedListener();
+
 			loading = false;
 
 			// Load initial diagram if provided
@@ -132,6 +185,11 @@
 
 			// Setup read-only mode after diagram is loaded
 			setupReadOnlyMode();
+
+			// Notify parent that modeler is ready
+			if (onModelerReady && modeler) {
+				onModelerReady(modeler);
+			}
 		} catch (err) {
 			console.error('Error initializing BPMN modeler:', err);
 			error = err instanceof Error ? err.message : 'Failed to initialize modeler';

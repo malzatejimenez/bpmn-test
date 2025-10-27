@@ -8,6 +8,7 @@
 	import type { TableRow } from '$lib/types/flow-table.types';
 	import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
 	import { bpmnBuilder } from '$lib/services/bpmn-builder';
+	import { bpmnIncrementalUpdater } from '$lib/services/bpmn-incremental-updater';
 	import '$lib/styles/bpmn.css';
 
 	type ViewMode = 'table' | 'split' | 'diagram';
@@ -33,12 +34,15 @@
 
 	// State
 	let rows = $state<TableRow[]>(DEFAULT_ROWS);
+	let previousRows = $state<TableRow[]>(DEFAULT_ROWS); // Track previous state for incremental updates
 	let flujoActual = $state<BPMNFlowDefinition | null>(null);
 	let currentXml = $state<string | null>(null);
 	let modoEdicion = $state(false);
 	let viewMode = $state<ViewMode>('split');
 	let viewportX = $state(0);
 	let diagramKey = $state(0); // Key to force diagram re-render
+	let modelerInstance = $state<any>(null); // Reference to BpmnModeler instance
+	let isApplyingIncrementalUpdate = $state(false); // Flag to prevent update loops
 
 	// Convert table rows to BPMN flow definition
 	function rowsToFlowDefinition(tableRows: TableRow[]): BPMNFlowDefinition {
@@ -100,8 +104,33 @@
 	}
 
 	// Handle table changes
-	function handleTableChange(newRows: TableRow[]) {
+	async function handleTableChange(newRows: TableRow[]) {
+		if (isApplyingIncrementalUpdate) return; // Prevent loops
+
+		const oldRows = rows;
 		rows = newRows;
+
+		// Try incremental update if we have a modeler instance and existing XML
+		if (modelerInstance && currentXml && previousRows.length > 0) {
+			const changes = bpmnIncrementalUpdater.detectChanges(previousRows, newRows);
+
+			if (changes.length > 0) {
+				console.log('Detected changes:', changes);
+
+				const success = await bpmnIncrementalUpdater.applyChanges(modelerInstance, changes);
+
+				if (success) {
+					console.log('Applied incremental updates successfully');
+					previousRows = JSON.parse(JSON.stringify(newRows));
+					return; // Don't regenerate the diagram
+				} else {
+					console.log('Incremental update not possible, full regeneration required');
+				}
+			}
+		}
+
+		// Fall back to full regeneration
+		previousRows = JSON.parse(JSON.stringify(newRows));
 		updateDiagram();
 	}
 
@@ -117,6 +146,64 @@
 	// Handle viewport changes (pan/zoom/scroll)
 	function handleViewportChange(viewbox: any) {
 		viewportX = viewbox.x;
+	}
+
+	// Handle modeler ready (receive modeler instance reference)
+	function handleModelerReady(modelerRef: any) {
+		modelerInstance = modelerRef;
+		console.log('Modeler instance received');
+	}
+
+	// Handle element changed in diagram (bidirectional sync: diagram → table)
+	function handleElementChanged(elementId: string, properties: any) {
+		if (isApplyingIncrementalUpdate) return; // Prevent loops
+
+		console.log('Diagram element changed, updating table:', elementId, properties);
+
+		// Find the row with this element ID
+		const rowIndex = rows.findIndex(r => r.id === elementId);
+		if (rowIndex === -1) {
+			console.warn('Row not found for element:', elementId);
+			return;
+		}
+
+		// Update the row with new properties
+		const updatedRows = [...rows];
+		const row = updatedRows[rowIndex];
+
+		let hasChanges = false;
+
+		// Set flag to prevent triggering incremental update back to diagram
+		isApplyingIncrementalUpdate = true;
+
+		// Update properties that changed (only if they have a real value or explicitly changed)
+		// For 'name': update if different
+		if (properties.name !== undefined && properties.name !== row.label) {
+			row.label = properties.name;
+			hasChanges = true;
+		}
+
+		// For 'responsable': only update if it's not empty OR if it was explicitly cleared
+		// Don't overwrite existing responsable with empty value from diagram edits
+		if (properties.responsable !== undefined && properties.responsable !== row.responsable) {
+			// Only update if new value is non-empty, OR if old value exists and new is explicitly empty
+			if (properties.responsable !== '' || row.responsable === '') {
+				row.responsable = properties.responsable;
+				hasChanges = true;
+			}
+		}
+
+		// Only update if there were actual changes
+		if (hasChanges) {
+			// Update rows (this will trigger handleTableChange but isApplyingIncrementalUpdate prevents loop)
+			rows = updatedRows;
+			previousRows = JSON.parse(JSON.stringify(updatedRows));
+		}
+
+		// Reset flag after a short delay
+		setTimeout(() => {
+			isApplyingIncrementalUpdate = false;
+		}, 100);
 	}
 
 	// Calculate swimlanes based on responsables (vertical columns)
@@ -283,6 +370,8 @@
 							editable={modoEdicion}
 							onChange={handleDiagramChange}
 							onViewportChange={handleViewportChange}
+							onModelerReady={handleModelerReady}
+							onElementChanged={handleElementChanged}
 							class="diagram-viewer"
 						/>
 					{/key}
