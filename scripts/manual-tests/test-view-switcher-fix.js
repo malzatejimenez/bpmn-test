@@ -24,9 +24,7 @@ async function testViewSwitcher() {
 	const previewVisible1 = await isPanelVisible('.preview-panel');
 	console.log(`   Editor: ${editorVisible1 ? '✅ Visible' : '❌ Oculto'}`);
 	console.log(`   Gráfica: ${previewVisible1 ? '✅ Visible' : '❌ Oculto'}`);
-	console.log(
-		`   ${editorVisible1 && previewVisible1 ? '✅ CORRECTO' : '❌ ERROR'}\n`
-	);
+	console.log(`   ${editorVisible1 && previewVisible1 ? '✅ CORRECTO' : '❌ ERROR'}\n`);
 
 	// Cambiar a modo "Solo Tabla"
 	console.log('🔄 Cambiando a modo "Solo Tabla"...');
@@ -65,7 +63,9 @@ async function testViewSwitcher() {
 	const localStorageValue = await page.evaluate(() => {
 		return localStorage.getItem('bpmn-view-mode');
 	});
-	console.log(`💾 Persistencia: "${localStorageValue}" ${localStorageValue === 'split' ? '✅' : '❌'}\n`);
+	console.log(
+		`💾 Persistencia: "${localStorageValue}" ${localStorageValue === 'split' ? '✅' : '❌'}\n`
+	);
 
 	console.log('✅ Test completado');
 	console.log('💡 Presiona Ctrl+C para cerrar');

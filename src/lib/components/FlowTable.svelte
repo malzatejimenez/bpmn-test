@@ -50,7 +50,9 @@
 
 	// Get unique responsables for autocomplete
 	let availableResponsables = $derived(
-		Array.from(new Set(rows.map((r) => r.responsable).filter((r): r is string => !!r && r.trim() !== '')))
+		Array.from(
+			new Set(rows.map((r) => r.responsable).filter((r): r is string => !!r && r.trim() !== ''))
+		)
 	);
 
 	// Validate unique IDs
@@ -307,7 +309,9 @@
 		font-size: 1.125rem;
 		padding: 0.25rem;
 		opacity: 0.6;
-		transition: opacity 0.2s, transform 0.1s;
+		transition:
+			opacity 0.2s,
+			transform 0.1s;
 	}
 
 	.btn-delete:hover {

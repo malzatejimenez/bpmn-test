@@ -31,7 +31,10 @@ test.describe('BPMN Constructor', () => {
 		await page.waitForTimeout(500);
 
 		// Add a new row
-		const addButton = page.locator('button').filter({ hasText: /Agregar|Add/ }).first();
+		const addButton = page
+			.locator('button')
+			.filter({ hasText: /Agregar|Add/ })
+			.first();
 		if (await addButton.isVisible()) {
 			await addButton.click();
 			await page.waitForTimeout(500);
@@ -110,7 +113,10 @@ test.describe('BPMN Constructor', () => {
 		await page.waitForTimeout(300);
 
 		// Add second row if possible
-		const addButton = page.locator('button').filter({ hasText: /Agregar|Add/ }).first();
+		const addButton = page
+			.locator('button')
+			.filter({ hasText: /Agregar|Add/ })
+			.first();
 		if (await addButton.isVisible()) {
 			await addButton.click();
 			await page.waitForTimeout(300);
@@ -122,7 +128,10 @@ test.describe('BPMN Constructor', () => {
 		}
 
 		// Switch to diagram view
-		const diagramButton = page.locator('button').filter({ hasText: /Vista.*Diagrama|Diagram.*View/ }).first();
+		const diagramButton = page
+			.locator('button')
+			.filter({ hasText: /Vista.*Diagrama|Diagram.*View/ })
+			.first();
 		if (await diagramButton.isVisible()) {
 			await diagramButton.click();
 			await page.waitForTimeout(1500);
@@ -131,13 +140,15 @@ test.describe('BPMN Constructor', () => {
 			const headersContainer = page.locator('.swimlane-headers');
 			if (await headersContainer.isVisible()) {
 				// Verify headers are positioned absolutely (frozen)
-				const position = await headersContainer.evaluate(el =>
-					window.getComputedStyle(el).position
+				const position = await headersContainer.evaluate(
+					(el) => window.getComputedStyle(el).position
 				);
 				expect(position).toBe('absolute');
 
 				// Check that responsable names are visible in headers
-				const headerTexts = await page.locator('.swimlane-header, .header-content').allTextContents();
+				const headerTexts = await page
+					.locator('.swimlane-header, .header-content')
+					.allTextContents();
 				console.log('Swimlane headers found:', headerTexts);
 			}
 		}

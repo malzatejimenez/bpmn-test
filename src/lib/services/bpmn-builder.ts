@@ -194,8 +194,8 @@ export class BpmnBuilder {
 	 */
 	private createBPMNShape(node: BPMNNode) {
 		const position = node.position || this.generatePosition();
-		const dimensions =
-			node.dimensions || BPMN_DEFAULT_DIMENSIONS[node.type] || { width: 100, height: 80 };
+		const dimensions = node.dimensions ||
+			BPMN_DEFAULT_DIMENSIONS[node.type] || { width: 100, height: 80 };
 
 		const bounds = this.moddle.create('dc:Bounds', {
 			x: position.x,
@@ -237,16 +237,12 @@ export class BpmnBuilder {
 	): BPMNNode[] {
 		if (!sourceNode.position || !targetNode.position) return [];
 
-		const sourceDims =
-			sourceNode.dimensions ||
-			BPMN_DEFAULT_DIMENSIONS[sourceNode.type] ||
-			{ width: 100, height: 80 };
-		const targetDims =
-			targetNode.dimensions ||
-			BPMN_DEFAULT_DIMENSIONS[targetNode.type] ||
-			{ width: 100, height: 80 };
+		const sourceDims = sourceNode.dimensions ||
+			BPMN_DEFAULT_DIMENSIONS[sourceNode.type] || { width: 100, height: 80 };
+		const targetDims = targetNode.dimensions ||
+			BPMN_DEFAULT_DIMENSIONS[targetNode.type] || { width: 100, height: 80 };
 
-		const sourceBottom = sourceNode.position.y + sourceDims.height;
+		const sourceBottom = sourceNode.position.y + (sourceDims.height ?? 80);
 		const targetTop = targetNode.position.y;
 
 		return allNodes.filter((node) => {
@@ -255,16 +251,16 @@ export class BpmnBuilder {
 			}
 
 			// Check if in same column (within tolerance of ±50px)
-			const xDiff = Math.abs(node.position.x - sourceNode.position.x);
+			const xDiff = Math.abs(node.position.x - (sourceNode.position?.x ?? 0));
 			if (xDiff > 50) {
 				return false;
 			}
 
 			// Check if vertically between source and target
-			const nodeDims =
-				node.dimensions || BPMN_DEFAULT_DIMENSIONS[node.type] || { width: 100, height: 80 };
+			const nodeDims = node.dimensions ||
+				BPMN_DEFAULT_DIMENSIONS[node.type] || { width: 100, height: 80 };
 			const nodeTop = node.position.y;
-			const nodeBottom = node.position.y + nodeDims.height;
+			const nodeBottom = node.position.y + (nodeDims.height ?? 80);
 
 			return nodeTop > sourceBottom && nodeBottom < targetTop;
 		});
@@ -279,23 +275,19 @@ export class BpmnBuilder {
 		const sourcePos = sourceNode?.position || { x: 100, y: 100 };
 		const targetPos = targetNode?.position || { x: 300, y: 100 };
 
-		const sourceDims =
-			sourceNode?.dimensions ||
-			BPMN_DEFAULT_DIMENSIONS[sourceNode?.type || 'task'] ||
-			{ width: 100, height: 80 };
-		const targetDims =
-			targetNode?.dimensions ||
-			BPMN_DEFAULT_DIMENSIONS[targetNode?.type || 'task'] ||
-			{ width: 100, height: 80 };
+		const sourceDims = sourceNode?.dimensions ||
+			BPMN_DEFAULT_DIMENSIONS[sourceNode?.type || 'task'] || { width: 100, height: 80 };
+		const targetDims = targetNode?.dimensions ||
+			BPMN_DEFAULT_DIMENSIONS[targetNode?.type || 'task'] || { width: 100, height: 80 };
 
 		// Calculate connection points
-		const sourceCenterX = sourcePos.x + sourceDims.width / 2;
-		const sourceCenterY = sourcePos.y + sourceDims.height / 2;
-		const sourceBottom = sourcePos.y + sourceDims.height;
-		const sourceRight = sourcePos.x + sourceDims.width;
+		const sourceCenterX = sourcePos.x + (sourceDims.width ?? 100) / 2;
+		const sourceCenterY = sourcePos.y + (sourceDims.height ?? 80) / 2;
+		const sourceBottom = sourcePos.y + (sourceDims.height ?? 80);
+		const sourceRight = sourcePos.x + (sourceDims.width ?? 100);
 
-		const targetCenterX = targetPos.x + targetDims.width / 2;
-		const targetCenterY = targetPos.y + targetDims.height / 2;
+		const targetCenterX = targetPos.x + (targetDims.width ?? 100) / 2;
+		const targetCenterY = targetPos.y + (targetDims.height ?? 80) / 2;
 		const targetTop = targetPos.y;
 		const targetLeft = targetPos.x;
 
@@ -426,9 +418,8 @@ export class BpmnBuilder {
 		const defaultResponsable = 'Sin asignar';
 
 		layouted.nodes.forEach((node) => {
-			const responsable = node.responsable && node.responsable.trim() !== ''
-				? node.responsable
-				: defaultResponsable;
+			const responsable =
+				node.responsable && node.responsable.trim() !== '' ? node.responsable : defaultResponsable;
 
 			if (!responsableGroups.has(responsable)) {
 				responsableGroups.set(responsable, []);
@@ -449,7 +440,7 @@ export class BpmnBuilder {
 
 		Array.from(responsableGroups.keys()).forEach((responsable) => {
 			// Center the activity horizontally in the column
-			const xPos = currentXBase + (swimlaneWidth / 2);
+			const xPos = currentXBase + swimlaneWidth / 2;
 			responsableXPositions.set(responsable, xPos);
 			currentXBase += swimlaneWidth;
 		});
@@ -474,9 +465,8 @@ export class BpmnBuilder {
 
 		// Position start events
 		startNodes.forEach((node) => {
-			const responsable = node.responsable && node.responsable.trim() !== ''
-				? node.responsable
-				: defaultResponsable;
+			const responsable =
+				node.responsable && node.responsable.trim() !== '' ? node.responsable : defaultResponsable;
 			const x = responsableXPositions.get(responsable) || 100;
 			const y = responsableYPositions.get(responsable) || 100;
 
@@ -499,9 +489,10 @@ export class BpmnBuilder {
 				if (!visitedNodes.has(nextNodeId)) {
 					const node = layouted.nodes.find((n) => n.id === nextNodeId);
 					if (node) {
-						const responsable = node.responsable && node.responsable.trim() !== ''
-							? node.responsable
-							: defaultResponsable;
+						const responsable =
+							node.responsable && node.responsable.trim() !== ''
+								? node.responsable
+								: defaultResponsable;
 
 						// Get X position for this responsable's column
 						const x = responsableXPositions.get(responsable) || 100;

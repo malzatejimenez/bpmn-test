@@ -37,9 +37,8 @@ try {
 	const elementPos = await page.evaluate(() => {
 		const canvas = document.querySelector('.bpmn-container');
 		const shapes = Array.from(canvas.querySelectorAll('[data-element-id]'));
-		const shape = shapes.find(s =>
-			s.classList.contains('djs-shape') &&
-			!s.classList.contains('djs-label')
+		const shape = shapes.find(
+			(s) => s.classList.contains('djs-shape') && !s.classList.contains('djs-label')
 		);
 		if (shape) {
 			const rect = shape.getBoundingClientRect();
@@ -132,7 +131,6 @@ try {
 
 	console.log('\n⏱️  Keeping browser open for 5 seconds...\n');
 	await page.waitForTimeout(5000);
-
 } catch (error) {
 	console.error('❌ Test error:', error);
 	testPassed = false;

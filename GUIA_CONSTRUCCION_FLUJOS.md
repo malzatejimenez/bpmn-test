@@ -3,6 +3,7 @@
 ## 🎯 Conceptos Básicos
 
 Un flujo BPMN se compone de:
+
 1. **Nodos** (elementos del diagrama): eventos, tareas, compuertas
 2. **Conexiones** (flechas): cómo se conectan los nodos
 3. **Posiciones** (opcional): dónde se ubica cada elemento
@@ -11,14 +12,16 @@ Un flujo BPMN se compone de:
 
 ```typescript
 const miflujo = {
-  id: 'Process_MiFlujo',           // ID único del proceso
-  name: 'Mi Primer Flujo',         // Nombre que se muestra
-  nodes: [                         // Array de nodos/elementos
-    // ... nodos aquí
-  ],
-  connections: [                   // Array de conexiones
-    // ... conexiones aquí
-  ]
+	id: 'Process_MiFlujo', // ID único del proceso
+	name: 'Mi Primer Flujo', // Nombre que se muestra
+	nodes: [
+		// Array de nodos/elementos
+		// ... nodos aquí
+	],
+	connections: [
+		// Array de conexiones
+		// ... conexiones aquí
+	]
 };
 ```
 
@@ -131,6 +134,7 @@ Las posiciones son coordenadas X, Y en píxeles:
 ```
 
 **Consejos:**
+
 - Separa nodos horizontalmente ~150-200px
 - Separa rutas verticalmente ~100px
 - Usa números redondos (100, 200, 300...)
@@ -141,151 +145,151 @@ Las posiciones son coordenadas X, Y en píxeles:
 import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
 
 export const vacacionesFlow: BPMNFlowDefinition = {
-  id: 'Process_Vacaciones',
-  name: 'Solicitud de Vacaciones',
+	id: 'Process_Vacaciones',
+	name: 'Solicitud de Vacaciones',
 
-  nodes: [
-    // 1. Inicio
-    {
-      id: 'start',
-      type: 'startEvent',
-      label: 'Solicitud Iniciada',
-      position: { x: 100, y: 200 }
-    },
+	nodes: [
+		// 1. Inicio
+		{
+			id: 'start',
+			type: 'startEvent',
+			label: 'Solicitud Iniciada',
+			position: { x: 100, y: 200 }
+		},
 
-    // 2. Empleado llena formulario
-    {
-      id: 'llenarFormulario',
-      type: 'userTask',
-      label: 'Llenar Formulario',
-      position: { x: 250, y: 180 }
-    },
+		// 2. Empleado llena formulario
+		{
+			id: 'llenarFormulario',
+			type: 'userTask',
+			label: 'Llenar Formulario',
+			position: { x: 250, y: 180 }
+		},
 
-    // 3. Sistema valida fechas
-    {
-      id: 'validarFechas',
-      type: 'serviceTask',
-      label: 'Validar Disponibilidad',
-      position: { x: 450, y: 180 }
-    },
+		// 3. Sistema valida fechas
+		{
+			id: 'validarFechas',
+			type: 'serviceTask',
+			label: 'Validar Disponibilidad',
+			position: { x: 450, y: 180 }
+		},
 
-    // 4. Decisión: ¿Fechas válidas?
-    {
-      id: 'fechasValidas',
-      type: 'exclusiveGateway',
-      label: '¿Válido?',
-      position: { x: 650, y: 175 }
-    },
+		// 4. Decisión: ¿Fechas válidas?
+		{
+			id: 'fechasValidas',
+			type: 'exclusiveGateway',
+			label: '¿Válido?',
+			position: { x: 650, y: 175 }
+		},
 
-    // 5a. Ruta SI: Supervisor revisa
-    {
-      id: 'revisorSupervisor',
-      type: 'userTask',
-      label: 'Revisar Solicitud',
-      position: { x: 800, y: 100 }
-    },
+		// 5a. Ruta SI: Supervisor revisa
+		{
+			id: 'revisorSupervisor',
+			type: 'userTask',
+			label: 'Revisar Solicitud',
+			position: { x: 800, y: 100 }
+		},
 
-    // 5b. Ruta NO: Notificar rechazo
-    {
-      id: 'notificarRechazo',
-      type: 'sendTask',
-      label: 'Enviar Rechazo',
-      position: { x: 800, y: 280 }
-    },
+		// 5b. Ruta NO: Notificar rechazo
+		{
+			id: 'notificarRechazo',
+			type: 'sendTask',
+			label: 'Enviar Rechazo',
+			position: { x: 800, y: 280 }
+		},
 
-    // 6. Decisión del supervisor
-    {
-      id: 'supervisorAprueba',
-      type: 'exclusiveGateway',
-      label: '¿Aprueba?',
-      position: { x: 1000, y: 95 }
-    },
+		// 6. Decisión del supervisor
+		{
+			id: 'supervisorAprueba',
+			type: 'exclusiveGateway',
+			label: '¿Aprueba?',
+			position: { x: 1000, y: 95 }
+		},
 
-    // 7a. Aprobado
-    {
-      id: 'registrarVacaciones',
-      type: 'serviceTask',
-      label: 'Registrar en Sistema',
-      position: { x: 1150, y: 50 }
-    },
+		// 7a. Aprobado
+		{
+			id: 'registrarVacaciones',
+			type: 'serviceTask',
+			label: 'Registrar en Sistema',
+			position: { x: 1150, y: 50 }
+		},
 
-    // 7b. Rechazado por supervisor
-    {
-      id: 'notificarRechazoSupervisor',
-      type: 'sendTask',
-      label: 'Notificar Rechazo',
-      position: { x: 1150, y: 180 }
-    },
+		// 7b. Rechazado por supervisor
+		{
+			id: 'notificarRechazoSupervisor',
+			type: 'sendTask',
+			label: 'Notificar Rechazo',
+			position: { x: 1150, y: 180 }
+		},
 
-    // Fin exitoso
-    {
-      id: 'endAprobado',
-      type: 'endEvent',
-      label: 'Aprobado',
-      position: { x: 1350, y: 68 }
-    },
+		// Fin exitoso
+		{
+			id: 'endAprobado',
+			type: 'endEvent',
+			label: 'Aprobado',
+			position: { x: 1350, y: 68 }
+		},
 
-    // Fin rechazado
-    {
-      id: 'endRechazado',
-      type: 'endEvent',
-      label: 'Rechazado',
-      position: { x: 1000, y: 298 }
-    }
-  ],
+		// Fin rechazado
+		{
+			id: 'endRechazado',
+			type: 'endEvent',
+			label: 'Rechazado',
+			position: { x: 1000, y: 298 }
+		}
+	],
 
-  connections: [
-    { id: 'f1', from: 'start', to: 'llenarFormulario' },
-    { id: 'f2', from: 'llenarFormulario', to: 'validarFechas' },
-    { id: 'f3', from: 'validarFechas', to: 'fechasValidas' },
+	connections: [
+		{ id: 'f1', from: 'start', to: 'llenarFormulario' },
+		{ id: 'f2', from: 'llenarFormulario', to: 'validarFechas' },
+		{ id: 'f3', from: 'validarFechas', to: 'fechasValidas' },
 
-    // Ruta fechas válidas
-    {
-      id: 'f4',
-      from: 'fechasValidas',
-      to: 'revisorSupervisor',
-      label: 'Válido',
-      condition: '${fechasDisponibles == true}'
-    },
+		// Ruta fechas válidas
+		{
+			id: 'f4',
+			from: 'fechasValidas',
+			to: 'revisorSupervisor',
+			label: 'Válido',
+			condition: '${fechasDisponibles == true}'
+		},
 
-    // Ruta fechas inválidas
-    {
-      id: 'f5',
-      from: 'fechasValidas',
-      to: 'notificarRechazo',
-      label: 'No válido',
-      condition: '${fechasDisponibles == false}'
-    },
+		// Ruta fechas inválidas
+		{
+			id: 'f5',
+			from: 'fechasValidas',
+			to: 'notificarRechazo',
+			label: 'No válido',
+			condition: '${fechasDisponibles == false}'
+		},
 
-    { id: 'f6', from: 'revisorSupervisor', to: 'supervisorAprueba' },
+		{ id: 'f6', from: 'revisorSupervisor', to: 'supervisorAprueba' },
 
-    // Supervisor aprueba
-    {
-      id: 'f7',
-      from: 'supervisorAprueba',
-      to: 'registrarVacaciones',
-      label: 'Aprobar',
-      condition: '${supervisorAprueba == true}'
-    },
+		// Supervisor aprueba
+		{
+			id: 'f7',
+			from: 'supervisorAprueba',
+			to: 'registrarVacaciones',
+			label: 'Aprobar',
+			condition: '${supervisorAprueba == true}'
+		},
 
-    // Supervisor rechaza
-    {
-      id: 'f8',
-      from: 'supervisorAprueba',
-      to: 'notificarRechazoSupervisor',
-      label: 'Rechazar',
-      condition: '${supervisorAprueba == false}'
-    },
+		// Supervisor rechaza
+		{
+			id: 'f8',
+			from: 'supervisorAprueba',
+			to: 'notificarRechazoSupervisor',
+			label: 'Rechazar',
+			condition: '${supervisorAprueba == false}'
+		},
 
-    { id: 'f9', from: 'registrarVacaciones', to: 'endAprobado' },
-    { id: 'f10', from: 'notificarRechazo', to: 'endRechazado' },
-    { id: 'f11', from: 'notificarRechazoSupervisor', to: 'endRechazado' }
-  ],
+		{ id: 'f9', from: 'registrarVacaciones', to: 'endAprobado' },
+		{ id: 'f10', from: 'notificarRechazo', to: 'endRechazado' },
+		{ id: 'f11', from: 'notificarRechazoSupervisor', to: 'endRechazado' }
+	],
 
-  metadata: {
-    version: '1.0',
-    description: 'Proceso completo de solicitud y aprobación de vacaciones'
-  }
+	metadata: {
+		version: '1.0',
+		description: 'Proceso completo de solicitud y aprobación de vacaciones'
+	}
 };
 ```
 
@@ -298,17 +302,17 @@ import { bpmnBuilder } from '$lib/services/bpmn-builder';
 
 // Define solo los nodos SIN posiciones
 const miFlujoBruto = {
-  id: 'Process_Simple',
-  name: 'Flujo Simple',
-  nodes: [
-    { id: 'start', type: 'startEvent', label: 'Inicio' },
-    { id: 'task', type: 'task', label: 'Tarea' },
-    { id: 'end', type: 'endEvent', label: 'Fin' }
-  ],
-  connections: [
-    { id: 'f1', from: 'start', to: 'task' },
-    { id: 'f2', from: 'task', to: 'end' }
-  ]
+	id: 'Process_Simple',
+	name: 'Flujo Simple',
+	nodes: [
+		{ id: 'start', type: 'startEvent', label: 'Inicio' },
+		{ id: 'task', type: 'task', label: 'Tarea' },
+		{ id: 'end', type: 'endEvent', label: 'Fin' }
+	],
+	connections: [
+		{ id: 'f1', from: 'start', to: 'task' },
+		{ id: 'f2', from: 'task', to: 'end' }
+	]
 };
 
 // Aplica auto-layout
@@ -325,14 +329,14 @@ Crea un archivo en `src/lib/data/mi-flujo.ts`:
 import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
 
 export const miNuevoFlujo: BPMNFlowDefinition = {
-  id: 'Process_MiNuevoFlujo',
-  name: 'Mi Nuevo Flujo',
-  nodes: [
-    // ... tus nodos
-  ],
-  connections: [
-    // ... tus conexiones
-  ]
+	id: 'Process_MiNuevoFlujo',
+	name: 'Mi Nuevo Flujo',
+	nodes: [
+		// ... tus nodos
+	],
+	connections: [
+		// ... tus conexiones
+	]
 };
 ```
 
@@ -344,10 +348,10 @@ Edita `src/lib/data/example-flows.ts`:
 import { miNuevoFlujo } from './mi-flujo';
 
 export const exampleFlows = {
-  simpleApproval: simpleApprovalFlow,
-  parallelProcessing: parallelProcessingFlow,
-  orderFulfillment: orderFulfillmentFlow,
-  miNuevo: miNuevoFlujo  // ← Agregar aquí
+	simpleApproval: simpleApprovalFlow,
+	parallelProcessing: parallelProcessingFlow,
+	orderFulfillment: orderFulfillmentFlow,
+	miNuevo: miNuevoFlujo // ← Agregar aquí
 };
 ```
 
@@ -357,8 +361,8 @@ Edita `messages/en.json`:
 
 ```json
 {
-  "bpmn_flows_miNuevo_name": "My New Flow",
-  "bpmn_flows_miNuevo_description": "Description of my flow"
+	"bpmn_flows_miNuevo_name": "My New Flow",
+	"bpmn_flows_miNuevo_description": "Description of my flow"
 }
 ```
 
@@ -366,8 +370,8 @@ Edita `messages/es.json`:
 
 ```json
 {
-  "bpmn_flows_miNuevo_name": "Mi Nuevo Flujo",
-  "bpmn_flows_miNuevo_description": "Descripción de mi flujo"
+	"bpmn_flows_miNuevo_name": "Mi Nuevo Flujo",
+	"bpmn_flows_miNuevo_description": "Descripción de mi flujo"
 }
 ```
 
@@ -377,12 +381,12 @@ Edita `src/routes/bpmn/+page.svelte`, agrega un nuevo botón:
 
 ```svelte
 <button
-  class="flow-button"
-  class:active={selectedFlow === 'miNuevo'}
-  onclick={() => selectFlow('miNuevo')}
+	class="flow-button"
+	class:active={selectedFlow === 'miNuevo'}
+	onclick={() => selectFlow('miNuevo')}
 >
-  <span class="flow-label">{m.bpmn_flows_miNuevo_name()}</span>
-  <span class="flow-description">{m.bpmn_flows_miNuevo_description()}</span>
+	<span class="flow-label">{m.bpmn_flows_miNuevo_name()}</span>
+	<span class="flow-description">{m.bpmn_flows_miNuevo_description()}</span>
 </button>
 ```
 
@@ -392,20 +396,18 @@ Puedes probar tu flujo en cualquier componente Svelte:
 
 ```svelte
 <script>
-  import BpmnViewer from '$lib/components/BpmnViewer.svelte';
-  import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
+	import BpmnViewer from '$lib/components/BpmnViewer.svelte';
+	import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
 
-  const miFlujo: BPMNFlowDefinition = {
-    id: 'Process_Test',
-    name: 'Test',
-    nodes: [
-      { id: 'start', type: 'startEvent', label: 'Inicio', position: { x: 100, y: 200 } },
-      { id: 'end', type: 'endEvent', label: 'Fin', position: { x: 300, y: 200 } }
-    ],
-    connections: [
-      { id: 'f1', from: 'start', to: 'end' }
-    ]
-  };
+	const miFlujo: BPMNFlowDefinition = {
+		id: 'Process_Test',
+		name: 'Test',
+		nodes: [
+			{ id: 'start', type: 'startEvent', label: 'Inicio', position: { x: 100, y: 200 } },
+			{ id: 'end', type: 'endEvent', label: 'Fin', position: { x: 300, y: 200 } }
+		],
+		connections: [{ id: 'f1', from: 'start', to: 'end' }]
+	};
 </script>
 
 <BpmnViewer flowDefinition={miFlujo} />
@@ -413,19 +415,19 @@ Puedes probar tu flujo en cualquier componente Svelte:
 
 ## 📚 Referencia Rápida de Tipos de Nodos
 
-| Tipo | Descripción | Uso |
-|------|-------------|-----|
-| `startEvent` | Inicio del proceso | Donde comienza todo |
-| `endEvent` | Fin del proceso | Donde termina |
-| `task` | Tarea genérica | Cualquier acción |
-| `userTask` | Tarea manual | Requiere persona |
-| `serviceTask` | Tarea automática | Sistema/API |
-| `scriptTask` | Ejecutar código | Script automático |
-| `sendTask` | Enviar mensaje | Email, notificación |
-| `receiveTask` | Recibir mensaje | Esperar respuesta |
-| `exclusiveGateway` | Decisión (XOR) | Una sola ruta |
-| `parallelGateway` | Paralelo (AND) | Todas las rutas |
-| `inclusiveGateway` | Inclusivo (OR) | Una o más rutas |
+| Tipo               | Descripción        | Uso                 |
+| ------------------ | ------------------ | ------------------- |
+| `startEvent`       | Inicio del proceso | Donde comienza todo |
+| `endEvent`         | Fin del proceso    | Donde termina       |
+| `task`             | Tarea genérica     | Cualquier acción    |
+| `userTask`         | Tarea manual       | Requiere persona    |
+| `serviceTask`      | Tarea automática   | Sistema/API         |
+| `scriptTask`       | Ejecutar código    | Script automático   |
+| `sendTask`         | Enviar mensaje     | Email, notificación |
+| `receiveTask`      | Recibir mensaje    | Esperar respuesta   |
+| `exclusiveGateway` | Decisión (XOR)     | Una sola ruta       |
+| `parallelGateway`  | Paralelo (AND)     | Todas las rutas     |
+| `inclusiveGateway` | Inclusivo (OR)     | Una o más rutas     |
 
 ## 💡 Consejos Pro
 

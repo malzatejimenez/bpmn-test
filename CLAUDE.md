@@ -43,12 +43,14 @@ The app uses **Paraglide.js** for internationalization with two locales: `en` (d
 - **Configuration**: [project.inlang/settings.json](project.inlang/settings.json)
 
 **Key implementation details**:
+
 - [hooks.server.ts:4-13](src/hooks.server.ts#L4-L13): Paraglide middleware handles locale detection and sets the `%paraglide.lang%` placeholder in HTML
 - [hooks.ts:3](src/hooks.ts#L3): `deLocalizeUrl` reroute removes locale prefixes from URLs for internal routing
 
 ### Testing Setup
 
 **Unit Tests** (Vitest with browser mode):
+
 - Configuration in [vite.config.ts:15-43](vite.config.ts#L15-L43)
 - Two test projects: `client` (browser environment) and `server` (node environment)
 - Client tests: `*.svelte.{test,spec}.{js,ts}` files run in Playwright's Chromium browser
@@ -56,6 +58,7 @@ The app uses **Paraglide.js** for internationalization with two locales: `en` (d
 - Setup file: [vitest-setup-client.ts](vitest-setup-client.ts)
 
 **E2E Tests** (Playwright):
+
 - Configuration in [playwright.config.ts](playwright.config.ts)
 - Tests located in `e2e/` directory
 - Runs against production build (`npm run build && npm run preview` on port 4173)

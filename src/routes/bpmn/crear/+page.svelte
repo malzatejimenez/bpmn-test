@@ -378,27 +378,6 @@
 		background: #2563eb;
 	}
 
-	.btn-secondary {
-		padding: 0.5rem 1rem;
-		background: #10b981;
-		color: white;
-		border: none;
-		border-radius: 0.375rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-
-	.btn-secondary:hover:not(:disabled) {
-		background: #059669;
-	}
-
-	.btn-secondary:disabled {
-		background: #9ca3af;
-		cursor: not-allowed;
-		opacity: 0.6;
-	}
-
 	.mode-toggle {
 		display: flex;
 		align-items: center;

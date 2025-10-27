@@ -12,7 +12,7 @@
 
 	let isEditing = $state(false);
 	let editingConnections = $state<TableConnection[]>([]);
-	let editButton: HTMLButtonElement | undefined;
+	let editButton = $state<HTMLButtonElement | undefined>(undefined);
 	let editorPosition = $state({ top: 0, left: 0 });
 
 	// Filter out current node from available targets
@@ -121,14 +121,26 @@
 				</div>
 			{/if}
 
-			<button bind:this={editButton} onclick={startEdit} class="btn-edit" title="Editar conexiones">✏️</button>
+			<button bind:this={editButton} onclick={startEdit} class="btn-edit" title="Editar conexiones"
+				>✏️</button
+			>
 		</div>
 	{:else}
 		<!-- Edit mode backdrop -->
-		<div class="editor-backdrop" onclick={cancel}></div>
+		<div
+			class="editor-backdrop"
+			onclick={cancel}
+			onkeydown={(e) => e.key === 'Escape' && cancel()}
+			role="button"
+			tabindex="-1"
+			aria-label="Cerrar editor de conexiones"
+		></div>
 
 		<!-- Edit mode dialog -->
-		<div class="connections-editor" style="top: {editorPosition.top}px; left: {editorPosition.left}px;">
+		<div
+			class="connections-editor"
+			style="top: {editorPosition.top}px; left: {editorPosition.left}px;"
+		>
 			<div class="editor-header">
 				<span class="editor-title">Conexiones</span>
 				<button onclick={addConnection} class="btn-add-small">+ Agregar</button>
@@ -156,7 +168,11 @@
 							class="connection-input"
 						/>
 
-						<button onclick={() => removeConnection(index)} class="btn-remove-small" title="Eliminar">
+						<button
+							onclick={() => removeConnection(index)}
+							class="btn-remove-small"
+							title="Eliminar"
+						>
 							×
 						</button>
 					</div>

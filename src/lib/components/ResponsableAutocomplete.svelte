@@ -6,7 +6,12 @@
 		placeholder?: string;
 	}
 
-	let { value = '', availableResponsables, onChange, placeholder = 'Nombre del responsable' }: Props = $props();
+	let {
+		value = '',
+		availableResponsables,
+		onChange,
+		placeholder = 'Nombre del responsable'
+	}: Props = $props();
 
 	// Generate unique ID for datalist
 	const datalistId = `responsables-${Math.random().toString(36).substr(2, 9)}`;

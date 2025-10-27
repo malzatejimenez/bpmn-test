@@ -14,11 +14,16 @@
 	let { value, onChange }: Props = $props();
 </script>
 
-<select bind:value onchange={(e) => onChange(e.currentTarget.value as BPMNNodeType)} class="type-select">
+<select
+	bind:value
+	onchange={(e) => onChange(e.currentTarget.value as BPMNNodeType)}
+	class="type-select"
+>
 	<optgroup label="📅 Eventos">
 		{#each NODE_TYPE_CATEGORIES.events as type}
 			<option value={type}>
-				{NODE_TYPE_ICONS[type]} {NODE_TYPE_LABELS[type]}
+				{NODE_TYPE_ICONS[type]}
+				{NODE_TYPE_LABELS[type]}
 			</option>
 		{/each}
 	</optgroup>
@@ -26,7 +31,8 @@
 	<optgroup label="📋 Tareas">
 		{#each NODE_TYPE_CATEGORIES.tasks as type}
 			<option value={type}>
-				{NODE_TYPE_ICONS[type]} {NODE_TYPE_LABELS[type]}
+				{NODE_TYPE_ICONS[type]}
+				{NODE_TYPE_LABELS[type]}
 			</option>
 		{/each}
 	</optgroup>
@@ -34,7 +40,8 @@
 	<optgroup label="◇ Compuertas">
 		{#each NODE_TYPE_CATEGORIES.gateways as type}
 			<option value={type}>
-				{NODE_TYPE_ICONS[type]} {NODE_TYPE_LABELS[type]}
+				{NODE_TYPE_ICONS[type]}
+				{NODE_TYPE_LABELS[type]}
 			</option>
 		{/each}
 	</optgroup>
@@ -42,7 +49,8 @@
 	<optgroup label="📦 Otros">
 		{#each NODE_TYPE_CATEGORIES.other as type}
 			<option value={type}>
-				{NODE_TYPE_ICONS[type]} {NODE_TYPE_LABELS[type]}
+				{NODE_TYPE_ICONS[type]}
+				{NODE_TYPE_LABELS[type]}
 			</option>
 		{/each}
 	</optgroup>

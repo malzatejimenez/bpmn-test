@@ -12,7 +12,11 @@ const page = await browser.newPage();
 // Capture console logs
 page.on('console', (msg) => {
 	const text = msg.text();
-	if (text.includes('BpmnModeler') || text.includes('Diagram changed') || text.includes('localStorage')) {
+	if (
+		text.includes('BpmnModeler') ||
+		text.includes('Diagram changed') ||
+		text.includes('localStorage')
+	) {
 		console.log(`   💬 ${text}`);
 	}
 });
@@ -84,7 +88,9 @@ try {
 		};
 	});
 
-	console.log(`   XML: ${restored.xml ? '✅ Restored (' + restored.xml.length + ' chars)' : '❌ NOT restored'}`);
+	console.log(
+		`   XML: ${restored.xml ? '✅ Restored (' + restored.xml.length + ' chars)' : '❌ NOT restored'}`
+	);
 	console.log(`   Edit Mode: ${restored.editMode ? '✅ ' + restored.editMode : '❌ NOT restored'}`);
 	console.log(`   View Mode: ${restored.viewMode ? '✅ ' + restored.viewMode : '❌ NOT restored'}`);
 	console.log('');
@@ -114,7 +120,7 @@ try {
 		const rows = localStorage.getItem('bpmn-constructor-rows');
 		if (!rows) return false;
 		const parsed = JSON.parse(rows);
-		return parsed.some(r => r.id === 'tarea_test');
+		return parsed.some((r) => r.id === 'tarea_test');
 	});
 
 	console.log(rowsSaved ? '✅ Table row saved to localStorage' : '❌ NOT saved to localStorage');
@@ -136,7 +142,7 @@ try {
 
 		return {
 			hasRows: rows !== null,
-			hasCustomRow: rows ? JSON.parse(rows).some(r => r.id === 'tarea_test') : false,
+			hasCustomRow: rows ? JSON.parse(rows).some((r) => r.id === 'tarea_test') : false,
 			rowCount: rows ? JSON.parse(rows).length : 0,
 			hasXml: xml !== null && xml.length > 0,
 			xmlLength: xml ? xml.length : 0,
@@ -146,9 +152,15 @@ try {
 	});
 
 	console.log('   Final State:');
-	console.log(`   - Rows: ${finalState.hasRows ? '✅ Restored (' + finalState.rowCount + ' rows)' : '❌ NOT restored'}`);
-	console.log(`   - Custom Row: ${finalState.hasCustomRow ? '✅ Found "tarea_test"' : '❌ NOT found'}`);
-	console.log(`   - XML: ${finalState.hasXml ? '✅ Restored (' + finalState.xmlLength + ' chars)' : '❌ NOT restored'}`);
+	console.log(
+		`   - Rows: ${finalState.hasRows ? '✅ Restored (' + finalState.rowCount + ' rows)' : '❌ NOT restored'}`
+	);
+	console.log(
+		`   - Custom Row: ${finalState.hasCustomRow ? '✅ Found "tarea_test"' : '❌ NOT found'}`
+	);
+	console.log(
+		`   - XML: ${finalState.hasXml ? '✅ Restored (' + finalState.xmlLength + ' chars)' : '❌ NOT restored'}`
+	);
 	console.log(`   - Edit Mode: ${finalState.editMode || 'not set'}`);
 	console.log(`   - View Mode: ${finalState.viewMode || 'not set'}`);
 	console.log('');
@@ -175,7 +187,6 @@ try {
 
 	console.log('\n⏱️  Keeping browser open for 5 seconds...\n');
 	await page.waitForTimeout(5000);
-
 } catch (error) {
 	console.error('❌ Test error:', error);
 } finally {

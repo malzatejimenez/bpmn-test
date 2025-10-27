@@ -74,6 +74,7 @@ Three pre-built flow examples are available in [src/lib/data/example-flows.ts](s
 ### Viewing the Demo
 
 1. Start the development server:
+
    ```bash
    pnpm run dev
    ```
@@ -90,40 +91,40 @@ import { bpmnBuilder } from '$lib/services/bpmn-builder';
 
 // Define your flow
 const myFlow: BPMNFlowDefinition = {
-  id: 'Process_MyFlow',
-  name: 'My Custom Flow',
-  nodes: [
-    {
-      id: 'StartEvent_1',
-      type: 'startEvent',
-      label: 'Start',
-      position: { x: 100, y: 200 }
-    },
-    {
-      id: 'Task_1',
-      type: 'userTask',
-      label: 'Do Something',
-      position: { x: 300, y: 180 }
-    },
-    {
-      id: 'EndEvent_1',
-      type: 'endEvent',
-      label: 'End',
-      position: { x: 500, y: 200 }
-    }
-  ],
-  connections: [
-    {
-      id: 'Flow_1',
-      from: 'StartEvent_1',
-      to: 'Task_1'
-    },
-    {
-      id: 'Flow_2',
-      from: 'Task_1',
-      to: 'EndEvent_1'
-    }
-  ]
+	id: 'Process_MyFlow',
+	name: 'My Custom Flow',
+	nodes: [
+		{
+			id: 'StartEvent_1',
+			type: 'startEvent',
+			label: 'Start',
+			position: { x: 100, y: 200 }
+		},
+		{
+			id: 'Task_1',
+			type: 'userTask',
+			label: 'Do Something',
+			position: { x: 300, y: 180 }
+		},
+		{
+			id: 'EndEvent_1',
+			type: 'endEvent',
+			label: 'End',
+			position: { x: 500, y: 200 }
+		}
+	],
+	connections: [
+		{
+			id: 'Flow_1',
+			from: 'StartEvent_1',
+			to: 'Task_1'
+		},
+		{
+			id: 'Flow_2',
+			from: 'Task_1',
+			to: 'EndEvent_1'
+		}
+	]
 };
 
 // Generate XML
@@ -134,16 +135,18 @@ const xml = await bpmnBuilder.buildXML(myFlow);
 
 ```svelte
 <script lang="ts">
-  import BpmnViewer from '$lib/components/BpmnViewer.svelte';
-  import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
+	import BpmnViewer from '$lib/components/BpmnViewer.svelte';
+	import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
 
-  let myFlow: BPMNFlowDefinition = { /* ... */ };
-  let viewer: BpmnViewer;
+	let myFlow: BPMNFlowDefinition = {
+		/* ... */
+	};
+	let viewer: BpmnViewer;
 
-  async function exportDiagram() {
-    const xml = await viewer.exportXML();
-    console.log(xml);
-  }
+	async function exportDiagram() {
+		const xml = await viewer.exportXML();
+		console.log(xml);
+	}
 </script>
 
 <BpmnViewer bind:this={viewer} flowDefinition={myFlow} />
@@ -155,36 +158,38 @@ const xml = await bpmnBuilder.buildXML(myFlow);
 
 ```svelte
 <script lang="ts">
-  import BpmnModeler from '$lib/components/BpmnModeler.svelte';
-  import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
+	import BpmnModeler from '$lib/components/BpmnModeler.svelte';
+	import type { BPMNFlowDefinition } from '$lib/types/bpmn.types';
 
-  let myFlow: BPMNFlowDefinition = { /* ... */ };
-  let modeler: BpmnModeler;
-  let isEditable = $state(true);
+	let myFlow: BPMNFlowDefinition = {
+		/* ... */
+	};
+	let modeler: BpmnModeler;
+	let isEditable = $state(true);
 
-  function handleChange(xml: string) {
-    console.log('Diagram modified:', xml);
-  }
+	function handleChange(xml: string) {
+		console.log('Diagram modified:', xml);
+	}
 </script>
 
 <BpmnModeler
-  bind:this={modeler}
-  flowDefinition={myFlow}
-  editable={isEditable}
-  onChange={handleChange}
+	bind:this={modeler}
+	flowDefinition={myFlow}
+	editable={isEditable}
+	onChange={handleChange}
 />
 
-<button onclick={() => isEditable = !isEditable}>
-  Toggle Edit Mode
-</button>
+<button onclick={() => (isEditable = !isEditable)}> Toggle Edit Mode </button>
 ```
 
 ### Auto-layout
 
 **Basic Auto-layout (BFS-based)**
+
 ```typescript
 const layoutedFlow = bpmnBuilder.autoLayout(myFlow);
 ```
+
 Uses breadth-first search to position nodes in a left-to-right flow. This is useful when defining flows programmatically to provide reasonable default positions.
 
 **Manhattan Routing**
@@ -193,10 +198,12 @@ The BpmnModeler component automatically uses Manhattan routing (orthogonal conne
 ## Supported BPMN Elements
 
 ### Events
+
 - `startEvent` - Start event
 - `endEvent` - End event
 
 ### Tasks
+
 - `task` - Generic task
 - `userTask` - User task
 - `serviceTask` - Service task
@@ -207,12 +214,14 @@ The BpmnModeler component automatically uses Manhattan routing (orthogonal conne
 - `businessRuleTask` - Business rule task
 
 ### Gateways
+
 - `exclusiveGateway` - Exclusive (XOR) gateway
 - `parallelGateway` - Parallel (AND) gateway
 - `inclusiveGateway` - Inclusive (OR) gateway
 - `eventBasedGateway` - Event-based gateway
 
 ### Other
+
 - `subProcess` - Sub-process
 - `callActivity` - Call activity
 
@@ -222,22 +231,24 @@ The BpmnModeler component automatically uses Manhattan routing (orthogonal conne
 
 ```typescript
 class BpmnBuilder {
-  // Convert flow definition to BPMN XML
-  async buildXML(flowDefinition: BPMNFlowDefinition): Promise<string>
+	// Convert flow definition to BPMN XML
+	async buildXML(flowDefinition: BPMNFlowDefinition): Promise<string>;
 
-  // Auto-position nodes in the flow (basic BFS algorithm)
-  autoLayout(flowDefinition: BPMNFlowDefinition): BPMNFlowDefinition
+	// Auto-position nodes in the flow (basic BFS algorithm)
+	autoLayout(flowDefinition: BPMNFlowDefinition): BPMNFlowDefinition;
 }
 ```
 
 ### BpmnViewer (Svelte Component)
 
 **Props:**
+
 - `flowDefinition?: BPMNFlowDefinition` - Flow to display
 - `xml?: string` - Raw BPMN XML to display
 - `class?: string` - CSS class
 
 **Methods:**
+
 - `exportXML(): Promise<string | null>` - Export as BPMN XML
 - `exportSVG(): Promise<string | null>` - Export as SVG
 - `zoomToFit(): void` - Fit diagram to viewport
@@ -246,6 +257,7 @@ class BpmnBuilder {
 ### BpmnModeler (Svelte Component)
 
 **Props:**
+
 - `flowDefinition?: BPMNFlowDefinition` - Flow to display/edit
 - `xml?: string` - Raw BPMN XML to display/edit
 - `class?: string` - CSS class
@@ -253,6 +265,7 @@ class BpmnBuilder {
 - `onChange?: (xml: string) => void` - Callback when diagram changes
 
 **Methods:**
+
 - `loadDiagramXML(xml: string): Promise<void>` - Load new XML into modeler
 - `exportXML(): Promise<string | null>` - Export as BPMN XML
 - `exportSVG(): Promise<string | null>` - Export as SVG
@@ -260,6 +273,7 @@ class BpmnBuilder {
 - `setZoom(level: number): void` - Set zoom level
 
 **Features:**
+
 - Drag & drop elements from palette
 - Move, resize, and reconnect elements
 - Context pad for quick actions

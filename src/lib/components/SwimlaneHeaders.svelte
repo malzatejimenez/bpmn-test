@@ -67,7 +67,11 @@
 		font-weight: 600;
 		font-size: 0.875rem;
 		color: #475569;
-		background: linear-gradient(to bottom, rgba(248, 250, 252, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+		background: linear-gradient(
+			to bottom,
+			rgba(248, 250, 252, 0.98) 0%,
+			rgba(248, 250, 252, 0.95) 100%
+		);
 		border-bottom: 2px solid #cbd5e1;
 		backdrop-filter: blur(8px);
 		pointer-events: auto;

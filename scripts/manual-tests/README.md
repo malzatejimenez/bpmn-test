@@ -29,5 +29,6 @@ node scripts/manual-tests/test-constructor.js
 ## Note
 
 These are development scripts and are not part of the automated test suite. For automated tests, see:
+
 - Unit tests: `src/**/*.test.ts`
 - E2E tests: `e2e/**/*.spec.ts`

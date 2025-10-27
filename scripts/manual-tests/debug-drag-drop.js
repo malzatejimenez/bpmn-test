@@ -74,9 +74,11 @@ try {
 			const classList = Array.from(el.classList);
 
 			// Look for shapes (tasks, events, etc.) but not labels or connections
-			if (!classList.includes('djs-connection') &&
-			    !classList.includes('djs-label') &&
-			    classList.some(c => c.includes('djs-shape'))) {
+			if (
+				!classList.includes('djs-connection') &&
+				!classList.includes('djs-label') &&
+				classList.some((c) => c.includes('djs-shape'))
+			) {
 				const rect = el.getBoundingClientRect();
 				console.log(`Found draggable element: ${id} at (${rect.left}, ${rect.top})`);
 				return {
@@ -142,7 +144,6 @@ try {
 
 	console.log('🔍 Test complete. Keeping browser open for 10 seconds...');
 	await page.waitForTimeout(10000);
-
 } catch (error) {
 	console.error('❌ Test failed:', error);
 } finally {

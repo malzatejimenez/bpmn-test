@@ -1,17 +1,17 @@
 <div class="container">
 	<h1>Welcome to SvelteKit</h1>
-	<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+	<p>
+		Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation
+	</p>
 
 	<div class="demo-links">
 		<h2>BPMN Tools</h2>
 		<ul>
 			<li>
-				<a href="/bpmn">📊 BPMN Visualizer</a> - Interactive BPMN 2.0 diagram viewer with
-				example flows
+				<a href="/bpmn">📊 BPMN Visualizer</a> - Interactive BPMN 2.0 diagram viewer with example flows
 			</li>
 			<li>
-				<a href="/bpmn/crear">🏗️ Flow Builder</a> - Create and test your own BPMN flows
-				with live preview
+				<a href="/bpmn/crear">🏗️ Flow Builder</a> - Create and test your own BPMN flows with live preview
 			</li>
 		</ul>
 	</div>

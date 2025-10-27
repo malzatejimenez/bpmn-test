@@ -31,8 +31,8 @@ export class BpmnIncrementalUpdater {
 		const changes: Change[] = [];
 
 		// Create maps for quick lookup
-		const oldRowsMap = new Map(oldRows.map(r => [r.id, r]));
-		const newRowsMap = new Map(newRows.map(r => [r.id, r]));
+		const oldRowsMap = new Map(oldRows.map((r) => [r.id, r]));
+		const newRowsMap = new Map(newRows.map((r) => [r.id, r]));
 
 		// Detect added and updated nodes
 		for (const newRow of newRows) {
@@ -93,8 +93,8 @@ export class BpmnIncrementalUpdater {
 	private detectConnectionChanges(oldRow: TableRow, newRow: TableRow): Change[] {
 		const changes: Change[] = [];
 
-		const oldConnections = new Set(oldRow.connectsTo.map(c => c.targetId));
-		const newConnections = new Set(newRow.connectsTo.map(c => c.targetId));
+		const oldConnections = new Set(oldRow.connectsTo.map((c) => c.targetId));
+		const newConnections = new Set(newRow.connectsTo.map((c) => c.targetId));
 
 		// Detect added connections
 		for (const conn of newRow.connectsTo) {
@@ -195,7 +195,9 @@ export class BpmnIncrementalUpdater {
 		const target = elementRegistry.get(change.connectionTo);
 
 		if (!source || !target) {
-			console.warn(`Source or target not found for connection ${change.connectionFrom} -> ${change.connectionTo}`);
+			console.warn(
+				`Source or target not found for connection ${change.connectionFrom} -> ${change.connectionTo}`
+			);
 			return;
 		}
 
@@ -253,9 +255,7 @@ export class BpmnIncrementalUpdater {
 	 */
 	async applyChanges(modeler: any, changes: Change[]): Promise<boolean> {
 		// Check if any changes require full regeneration
-		const requiresFullRegeneration = changes.some(
-			c => c.type === 'node_added'
-		);
+		const requiresFullRegeneration = changes.some((c) => c.type === 'node_added');
 
 		if (requiresFullRegeneration) {
 			console.log('Changes require full diagram regeneration');

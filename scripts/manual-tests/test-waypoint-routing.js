@@ -34,7 +34,11 @@ async function testWaypointRouting() {
 	await page.waitForTimeout(300);
 
 	// Add Activity 2
-	await page.locator('button').filter({ hasText: /Agregar|Add/ }).first().click();
+	await page
+		.locator('button')
+		.filter({ hasText: /Agregar|Add/ })
+		.first()
+		.click();
 	await page.waitForTimeout(300);
 
 	await nameInputs.nth(1).fill('Actividad 2');
@@ -42,7 +46,11 @@ async function testWaypointRouting() {
 	await page.waitForTimeout(300);
 
 	// Add Activity 3
-	await page.locator('button').filter({ hasText: /Agregar|Add/ }).first().click();
+	await page
+		.locator('button')
+		.filter({ hasText: /Agregar|Add/ })
+		.first()
+		.click();
 	await page.waitForTimeout(300);
 
 	await nameInputs.nth(2).fill('Actividad 3');
@@ -50,7 +58,11 @@ async function testWaypointRouting() {
 	await page.waitForTimeout(300);
 
 	// Add Activity 4 in different column
-	await page.locator('button').filter({ hasText: /Agregar|Add/ }).first().click();
+	await page
+		.locator('button')
+		.filter({ hasText: /Agregar|Add/ })
+		.first()
+		.click();
 	await page.waitForTimeout(300);
 
 	await nameInputs.nth(3).fill('Actividad 4');

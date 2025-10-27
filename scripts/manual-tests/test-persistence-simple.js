@@ -38,7 +38,6 @@ try {
 	console.log('5. Verify everything is restored\n');
 
 	await page.waitForTimeout(60000); // Wait 1 minute
-
 } catch (error) {
 	console.error('❌ Error:', error);
 } finally {

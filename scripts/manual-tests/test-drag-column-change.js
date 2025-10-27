@@ -12,7 +12,11 @@ async function testDragColumnChange() {
 	// Enable console logging
 	page.on('console', (msg) => {
 		const text = msg.text();
-		if (text.includes('Element moved') || text.includes('Column change') || text.includes('Responsable updated')) {
+		if (
+			text.includes('Element moved') ||
+			text.includes('Column change') ||
+			text.includes('Responsable updated')
+		) {
 			console.log(`[BROWSER] ${text}`);
 		}
 	});
@@ -92,8 +96,8 @@ async function testDragColumnChange() {
 	// Move in steps to simulate realistic drag
 	const steps = 10;
 	for (let i = 1; i <= steps; i++) {
-		const x = tareaAX + ((targetX - tareaAX) * i / steps);
-		const y = tareaAY + ((targetY - tareaAY) * i / steps);
+		const x = tareaAX + ((targetX - tareaAX) * i) / steps;
+		const y = tareaAY + ((targetY - tareaAY) * i) / steps;
 		await page.mouse.move(x, y);
 		await page.waitForTimeout(20);
 	}
@@ -119,7 +123,9 @@ async function testDragColumnChange() {
 	}
 
 	console.log('\n=== Test complete ===');
-	console.log('Check browser console logs above for "Element moved" and "Column change detected" messages');
+	console.log(
+		'Check browser console logs above for "Element moved" and "Column change detected" messages'
+	);
 	console.log('\nPress Ctrl+C to exit...');
 
 	// Keep browser open for inspection

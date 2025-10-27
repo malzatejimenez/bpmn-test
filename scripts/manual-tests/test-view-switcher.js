@@ -32,7 +32,9 @@ async function testViewSwitcher() {
 	const editorVisibleTable = await page.locator('.editor-panel').isVisible();
 	const previewVisibleTable = await page.locator('.preview-panel').isVisible();
 	console.log(`📝 Panel editor visible: ${editorVisibleTable ? 'Sí' : 'No'}`);
-	console.log(`📊 Panel gráfica visible: ${previewVisibleTable ? 'Sí' : 'No'} (debería estar oculto)`);
+	console.log(
+		`📊 Panel gráfica visible: ${previewVisibleTable ? 'Sí' : 'No'} (debería estar oculto)`
+	);
 
 	// Cambiar a modo "Solo Gráfica"
 	console.log('\n🔄 Cambiando a modo "Solo Gráfica"...');
@@ -41,7 +43,9 @@ async function testViewSwitcher() {
 
 	const editorVisibleDiagram = await page.locator('.editor-panel').isVisible();
 	const previewVisibleDiagram = await page.locator('.preview-panel').isVisible();
-	console.log(`📝 Panel editor visible: ${editorVisibleDiagram ? 'Sí' : 'No'} (debería estar oculto)`);
+	console.log(
+		`📝 Panel editor visible: ${editorVisibleDiagram ? 'Sí' : 'No'} (debería estar oculto)`
+	);
 	console.log(`📊 Panel gráfica visible: ${previewVisibleDiagram ? 'Sí' : 'No'}`);
 
 	// Volver a modo "Ambas"

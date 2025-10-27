@@ -58,7 +58,9 @@ import { chromium } from 'playwright';
 		return elements.length;
 	});
 	console.log(`   ✓ Elementos en readonly: ${readonlyElements}`);
-	console.log(`   ${readonlyElements === afterAddElements ? '✅ CAMBIOS PRESERVADOS' : '❌ CAMBIOS PERDIDOS'}`);
+	console.log(
+		`   ${readonlyElements === afterAddElements ? '✅ CAMBIOS PRESERVADOS' : '❌ CAMBIOS PERDIDOS'}`
+	);
 
 	console.log('\n5. Reactivando modo edición...');
 	await page.click('input[type="checkbox"]:near(:text("Solo lectura"))');
@@ -70,7 +72,9 @@ import { chromium } from 'playwright';
 		return elements.length;
 	});
 	console.log(`   ✓ Elementos en edición (2da vez): ${finalElements}`);
-	console.log(`   ${finalElements === afterAddElements ? '✅ CAMBIOS AÚN PRESERVADOS' : '❌ CAMBIOS PERDIDOS'}`);
+	console.log(
+		`   ${finalElements === afterAddElements ? '✅ CAMBIOS AÚN PRESERVADOS' : '❌ CAMBIOS PERDIDOS'}`
+	);
 
 	await page.screenshot({ path: 'test-preserve-final.png', fullPage: true });
 	console.log('\n✓ Screenshot guardado como test-preserve-final.png');

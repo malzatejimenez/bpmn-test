@@ -72,8 +72,12 @@ try {
 	});
 
 	console.log('   📦 Stored data:');
-	console.log(`   - Rows: ${storageData.rows ? 'Found (' + JSON.parse(storageData.rows).length + ' rows)' : 'Not found'}`);
-	console.log(`   - XML: ${storageData.xml ? 'Found (' + storageData.xml.length + ' chars)' : 'Not found'}`);
+	console.log(
+		`   - Rows: ${storageData.rows ? 'Found (' + JSON.parse(storageData.rows).length + ' rows)' : 'Not found'}`
+	);
+	console.log(
+		`   - XML: ${storageData.xml ? 'Found (' + storageData.xml.length + ' chars)' : 'Not found'}`
+	);
 	console.log(`   - View Mode: ${storageData.viewMode || 'Not found'}`);
 	console.log(`   - Edit Mode: ${storageData.editMode || 'Not found'}\n`);
 
@@ -87,10 +91,15 @@ try {
 	console.log('✅ Step 7: Verifying restored data...\n');
 
 	// Check view mode
-	const diagramButtonActive = await page.locator('button').filter({ hasText: '📊 Gráfica' }).evaluate((el) => {
-		return el.classList.contains('active');
-	});
-	console.log(`   - View Mode (diagram-only): ${diagramButtonActive ? '✅ RESTORED' : '❌ NOT RESTORED'}`);
+	const diagramButtonActive = await page
+		.locator('button')
+		.filter({ hasText: '📊 Gráfica' })
+		.evaluate((el) => {
+			return el.classList.contains('active');
+		});
+	console.log(
+		`   - View Mode (diagram-only): ${diagramButtonActive ? '✅ RESTORED' : '❌ NOT RESTORED'}`
+	);
 
 	// Check edit mode
 	const editModeChecked = await page.locator('input[type="checkbox"]').isChecked();
@@ -102,7 +111,7 @@ try {
 
 	// Check if our custom row exists
 	const taskInput = page.locator('input[value="Mi Primera Tarea"]');
-	const taskExists = await taskInput.count() > 0;
+	const taskExists = (await taskInput.count()) > 0;
 	console.log(`   - Table Data: ${taskExists ? '✅ RESTORED' : '❌ NOT RESTORED'}`);
 
 	// Check if diagram has elements
@@ -112,7 +121,9 @@ try {
 		const elements = canvas.querySelectorAll('[data-element-id]');
 		return elements.length;
 	});
-	console.log(`   - Diagram: ${diagramElements > 0 ? `✅ RESTORED (${diagramElements} elements)` : '❌ NOT RESTORED'}`);
+	console.log(
+		`   - Diagram: ${diagramElements > 0 ? `✅ RESTORED (${diagramElements} elements)` : '❌ NOT RESTORED'}`
+	);
 
 	console.log('\n🎉 Persistence test completed!');
 
@@ -121,7 +132,6 @@ try {
 	} else {
 		console.log('⚠️ SOME DATA WAS NOT PERSISTED CORRECTLY\n');
 	}
-
 } catch (error) {
 	console.error('❌ Test failed:', error);
 } finally {
