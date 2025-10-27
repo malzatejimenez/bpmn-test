@@ -408,14 +408,19 @@ export class BpmnBuilder {
 
 	/**
 	 * Auto-layout nodes in a top-to-bottom flow, grouped by responsable (vertical swimlanes/columns)
+	 * Respects the order of nodes in the table - nodes appearing earlier are positioned higher
+	 * ALL nodes share the same vertical space based on their table row index
 	 */
 	autoLayout(flowDefinition: BPMNFlowDefinition): BPMNFlowDefinition {
 		const layouted = { ...flowDefinition };
-		const nodeMap = new Map<string, BPMNNode>();
+		const defaultResponsable = 'Sin asignar';
+		const verticalSpacing = 150; // Spacing between nodes vertically
+		const swimlaneWidth = 300; // Width of each swimlane/column
+		const startX = 100;
+		const startY = 100;
 
 		// Group nodes by responsable (vertical swimlanes/columns)
 		const responsableGroups = new Map<string, BPMNNode[]>();
-		const defaultResponsable = 'Sin asignar';
 
 		layouted.nodes.forEach((node) => {
 			const responsable =
@@ -427,16 +432,9 @@ export class BpmnBuilder {
 			responsableGroups.get(responsable)!.push(node);
 		});
 
-		// Find start events
-		const startNodes = layouted.nodes.filter((n) => n.type === 'startEvent');
-		const visitedNodes = new Set<string>();
-
-		const verticalSpacing = 150; // Spacing between nodes vertically (top to bottom)
-		const swimlaneWidth = 300; // Width of each swimlane/column
-
-		// Assign X position ranges for each responsable (columns)
+		// Calculate X positions for each responsable (columns)
 		const responsableXPositions = new Map<string, number>();
-		let currentXBase = 100;
+		let currentXBase = startX;
 
 		Array.from(responsableGroups.keys()).forEach((responsable) => {
 			// Center the activity horizontally in the column
@@ -445,72 +443,21 @@ export class BpmnBuilder {
 			currentXBase += swimlaneWidth;
 		});
 
-		// Build adjacency map
-		const adjacencyMap = new Map<string, string[]>();
-		for (const conn of layouted.connections) {
-			if (!adjacencyMap.has(conn.from)) {
-				adjacencyMap.set(conn.from, []);
-			}
-			adjacencyMap.get(conn.from)!.push(conn.to);
-		}
-
-		// Track Y positions per responsable to handle multiple nodes in same column
-		const responsableYPositions = new Map<string, number>();
-		Array.from(responsableGroups.keys()).forEach((responsable) => {
-			responsableYPositions.set(responsable, 100); // Start Y position for each column
-		});
-
-		// BFS layout from start events, respecting responsable columns
-		const queue: Array<{ nodeId: string; y: number }> = [];
-
-		// Position start events
-		startNodes.forEach((node) => {
+		// Position ALL nodes based on their GLOBAL table index
+		// This creates a shared vertical space across all columns
+		layouted.nodes.forEach((node) => {
 			const responsable =
 				node.responsable && node.responsable.trim() !== '' ? node.responsable : defaultResponsable;
-			const x = responsableXPositions.get(responsable) || 100;
-			const y = responsableYPositions.get(responsable) || 100;
+
+			// Get X position from responsable column
+			const x = responsableXPositions.get(responsable) || startX + swimlaneWidth / 2;
+
+			// Get Y position from GLOBAL table index (not per-column index)
+			const tableIndex = layouted.nodes.indexOf(node);
+			const y = startY + tableIndex * verticalSpacing;
 
 			node.position = { x, y };
-			nodeMap.set(node.id, node);
-			visitedNodes.add(node.id);
-			queue.push({ nodeId: node.id, y });
-
-			// Update Y position for this responsable's column
-			responsableYPositions.set(responsable, y + verticalSpacing);
 		});
-
-		// BFS to position remaining nodes
-		while (queue.length > 0) {
-			const current = queue.shift()!;
-			const currentNode = layouted.nodes.find((n) => n.id === current.nodeId);
-			const nextNodes = adjacencyMap.get(current.nodeId) || [];
-
-			nextNodes.forEach((nextNodeId) => {
-				if (!visitedNodes.has(nextNodeId)) {
-					const node = layouted.nodes.find((n) => n.id === nextNodeId);
-					if (node) {
-						const responsable =
-							node.responsable && node.responsable.trim() !== ''
-								? node.responsable
-								: defaultResponsable;
-
-						// Get X position for this responsable's column
-						const x = responsableXPositions.get(responsable) || 100;
-
-						// Get and update Y position for this column
-						const y = responsableYPositions.get(responsable) || 100;
-
-						node.position = { x, y };
-						nodeMap.set(node.id, node);
-						visitedNodes.add(nextNodeId);
-						queue.push({ nodeId: nextNodeId, y });
-
-						// Update Y position for next node in this column
-						responsableYPositions.set(responsable, y + verticalSpacing);
-					}
-				}
-			});
-		}
 
 		return layouted;
 	}
