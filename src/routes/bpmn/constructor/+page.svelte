@@ -154,6 +154,63 @@
 		console.log('Modeler instance received');
 	}
 
+	// Determine responsable from X position in diagram
+	function determineResponsableFromPosition(x: number): string {
+		const swimlaneWidth = 300;
+		const startX = 100;
+
+		// Determine column index based on X position
+		const columnIndex = Math.floor((x - startX) / swimlaneWidth);
+
+		// Map index to responsable from swimlanes array
+		const swimlanesList = swimlanes();
+		if (columnIndex >= 0 && columnIndex < swimlanesList.length) {
+			return swimlanesList[columnIndex].responsable;
+		}
+
+		return 'Sin asignar'; // Default
+	}
+
+	// Handle element moved in diagram (detect column changes)
+	function handleElementMoved(elementId: string, newPosition: { x: number; y: number }) {
+		if (isApplyingIncrementalUpdate) return; // Prevent loops
+
+		console.log('Element moved:', elementId, newPosition);
+
+		// Find the row with this element ID
+		const rowIndex = rows.findIndex(r => r.id === elementId);
+		if (rowIndex === -1) {
+			console.warn('Row not found for element:', elementId);
+			return;
+		}
+
+		// Determine new responsable based on X position
+		const newResponsable = determineResponsableFromPosition(newPosition.x);
+		const currentResponsable = rows[rowIndex].responsable || 'Sin asignar';
+
+		console.log('Column change detected:', currentResponsable, '→', newResponsable);
+
+		// If responsable changed, update the table
+		if (newResponsable !== currentResponsable) {
+			const updatedRows = [...rows];
+			updatedRows[rowIndex].responsable = newResponsable === 'Sin asignar' ? '' : newResponsable;
+
+			// Set flag to prevent triggering incremental update back to diagram
+			isApplyingIncrementalUpdate = true;
+
+			// Update rows
+			rows = updatedRows;
+			previousRows = JSON.parse(JSON.stringify(updatedRows));
+
+			console.log('✓ Responsable updated in table:', newResponsable);
+
+			// Reset flag after a short delay
+			setTimeout(() => {
+				isApplyingIncrementalUpdate = false;
+			}, 100);
+		}
+	}
+
 	// Handle element changed in diagram (bidirectional sync: diagram → table)
 	function handleElementChanged(elementId: string, properties: any) {
 		if (isApplyingIncrementalUpdate) return; // Prevent loops
@@ -372,6 +429,7 @@
 							onViewportChange={handleViewportChange}
 							onModelerReady={handleModelerReady}
 							onElementChanged={handleElementChanged}
+							onElementMoved={handleElementMoved}
 							class="diagram-viewer"
 						/>
 					{/key}

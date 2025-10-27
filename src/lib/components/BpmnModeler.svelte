@@ -15,6 +15,7 @@
 		onViewportChange?: (viewbox: any) => void;
 		onModelerReady?: (modelerInstance: any) => void;
 		onElementChanged?: (elementId: string, properties: any) => void;
+		onElementMoved?: (elementId: string, newPosition: { x: number; y: number }) => void;
 	}
 
 	let {
@@ -25,7 +26,8 @@
 		onChange,
 		onViewportChange,
 		onModelerReady,
-		onElementChanged
+		onElementChanged,
+		onElementMoved
 	}: Props = $props();
 
 	// State
@@ -37,6 +39,7 @@
 	let changeListener: any = null;
 	let viewportListener: any = null;
 	let elementChangedListener: any = null;
+	let elementMovedListener: any = null;
 
 	/**
 	 * Setup read-only mode by hiding palette and context pad
@@ -152,6 +155,44 @@
 	}
 
 	/**
+	 * Setup element moved listener to detect column changes
+	 */
+	function setupElementMovedListener() {
+		if (!modeler) return;
+
+		// Remove existing listener if any
+		if (elementMovedListener) {
+			modeler.off('shape.move.end', elementMovedListener);
+			elementMovedListener = null;
+		}
+
+		// Add listener if onElementMoved callback exists
+		if (onElementMoved) {
+			elementMovedListener = (event: any) => {
+				// Skip during relayout to avoid loops
+				if (isRelayouting) return;
+
+				const shape = event.shape;
+
+				// Only track flow nodes (not connections, labels, etc.)
+				if (!shape || !shape.businessObject) return;
+				if (shape.type && shape.type.includes('SequenceFlow')) return;
+				if (shape.type && shape.type.includes('Label')) return;
+
+				// Get new position after move
+				const newPosition = {
+					x: shape.x,
+					y: shape.y
+				};
+
+				console.log('Element moved:', shape.id, newPosition);
+				onElementMoved(shape.id, newPosition);
+			};
+			modeler.on('shape.move.end', elementMovedListener);
+		}
+	}
+
+	/**
 	 * Initialize BPMN modeler or viewer
 	 */
 	async function initModeler() {
@@ -173,6 +214,9 @@
 
 			// Setup element changed listener for bidirectional sync
 			setupElementChangedListener();
+
+			// Setup element moved listener for column change detection
+			setupElementMovedListener();
 
 			loading = false;
 
