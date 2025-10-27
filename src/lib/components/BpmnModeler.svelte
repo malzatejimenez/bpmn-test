@@ -15,7 +15,11 @@
 		onViewportChange?: (viewbox: any) => void;
 		onModelerReady?: (modelerInstance: any) => void;
 		onElementChanged?: (elementId: string, properties: any) => void;
-		onElementMoved?: (elementId: string, newPosition: { x: number; y: number }, oldPosition: { x: number; y: number }) => void;
+		onElementMoved?: (
+			elementId: string,
+			newPosition: { x: number; y: number },
+			oldPosition: { x: number; y: number }
+		) => void;
 	}
 
 	let {
@@ -147,7 +151,6 @@
 					responsable: element.businessObject.responsable || ''
 				};
 
-				console.log('Element changed:', element.id, properties);
 				onElementChanged(element.id, properties);
 			};
 			modeler.on('element.changed', elementChangedListener);
@@ -167,7 +170,7 @@
 		}
 
 		// Store original positions when move starts
-		let originalPositions = new Map<string, {x: number; y: number}>();
+		let originalPositions = new Map<string, { x: number; y: number }>();
 
 		// Capture original position on move start
 		const moveStartListener = (event: any) => {

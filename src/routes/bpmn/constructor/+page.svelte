@@ -45,10 +45,17 @@
 	let modelerInstance = $state<any>(null); // Reference to BpmnModeler instance
 	let isApplyingIncrementalUpdate = $state(false); // Flag to prevent update loops
 
-	// State for confirmation dialog
+	// State for confirmation dialogs
 	let showConfirmDialog = $state(false);
-	let pendingChange = $state<{elementId: string; oldPosition: {x: number; y: number}; newPosition: {x: number; y: number}; newResponsable: string; currentResponsable: string} | null>(null);
-	let elementPositions = $state<Map<string, {x: number; y: number}>>(new Map());
+	let pendingChange = $state<{
+		elementId: string;
+		oldPosition: { x: number; y: number };
+		newPosition: { x: number; y: number };
+		newResponsable: string;
+		currentResponsable: string;
+	} | null>(null);
+	let elementPositions = $state<Map<string, { x: number; y: number }>>(new Map());
+	let showRebuildConfirmDialog = $state(false);
 
 	// Convert table rows to BPMN flow definition
 	function rowsToFlowDefinition(tableRows: TableRow[]): BPMNFlowDefinition {
@@ -109,6 +116,22 @@
 		}
 	}
 
+	// Rebuild diagram with automatic layout (discards manual positions)
+	function rebuildDiagramLayout() {
+		showRebuildConfirmDialog = true;
+	}
+
+	// Confirm and execute diagram rebuild
+	function confirmRebuildLayout() {
+		updateDiagram();
+		showRebuildConfirmDialog = false;
+	}
+
+	// Cancel diagram rebuild
+	function cancelRebuildLayout() {
+		showRebuildConfirmDialog = false;
+	}
+
 	// Handle table changes
 	async function handleTableChange(newRows: TableRow[]) {
 		if (isApplyingIncrementalUpdate) return; // Prevent loops
@@ -121,16 +144,11 @@
 			const changes = bpmnIncrementalUpdater.detectChanges(previousRows, newRows);
 
 			if (changes.length > 0) {
-				console.log('Detected changes:', changes);
-
 				const success = await bpmnIncrementalUpdater.applyChanges(modelerInstance, changes);
 
 				if (success) {
-					console.log('Applied incremental updates successfully');
 					previousRows = JSON.parse(JSON.stringify(newRows));
 					return; // Don't regenerate the diagram
-				} else {
-					console.log('Incremental update not possible, full regeneration required');
 				}
 			}
 		}
@@ -157,7 +175,6 @@
 	// Handle modeler ready (receive modeler instance reference)
 	function handleModelerReady(modelerRef: any) {
 		modelerInstance = modelerRef;
-		console.log('Modeler instance received');
 	}
 
 	// Determine responsable from X position in diagram
@@ -178,15 +195,18 @@
 	}
 
 	// Handle element moved in diagram (detect column changes)
-	function handleElementMoved(elementId: string, newPosition: { x: number; y: number }, oldPosition: { x: number; y: number }) {
+	function handleElementMoved(
+		elementId: string,
+		newPosition: { x: number; y: number },
+		oldPosition: { x: number; y: number }
+	) {
 		// Note: We do NOT check isApplyingIncrementalUpdate here because
 		// element moves in the diagram should ALWAYS update the table,
 		// regardless of whether we're in the middle of an incremental update
 
 		// Find the row with this element ID
-		const rowIndex = rows.findIndex(r => r.id === elementId);
+		const rowIndex = rows.findIndex((r) => r.id === elementId);
 		if (rowIndex === -1) {
-			console.warn('Row not found for element:', elementId);
 			return;
 		}
 
@@ -211,11 +231,13 @@
 	function applyResponsableChange() {
 		if (!pendingChange) return;
 
-		const rowIndex = rows.findIndex(r => r.id === pendingChange.elementId);
+		const change = pendingChange; // Local variable for type narrowing
+		const rowIndex = rows.findIndex((r) => r.id === change.elementId);
 		if (rowIndex === -1) return;
 
 		const updatedRows = [...rows];
-		updatedRows[rowIndex].responsable = pendingChange.newResponsable === 'Sin asignar' ? '' : pendingChange.newResponsable;
+		updatedRows[rowIndex].responsable =
+			change.newResponsable === 'Sin asignar' ? '' : change.newResponsable;
 
 		// Set flag to prevent triggering incremental update back to diagram
 		isApplyingIncrementalUpdate = true;
@@ -263,12 +285,9 @@
 	function handleElementChanged(elementId: string, properties: any) {
 		if (isApplyingIncrementalUpdate) return; // Prevent loops
 
-		console.log('Diagram element changed, updating table:', elementId, properties);
-
 		// Find the row with this element ID
-		const rowIndex = rows.findIndex(r => r.id === elementId);
+		const rowIndex = rows.findIndex((r) => r.id === elementId);
 		if (rowIndex === -1) {
-			console.warn('Row not found for element:', elementId);
 			return;
 		}
 
@@ -320,9 +339,8 @@
 		const defaultResponsable = 'Sin asignar';
 
 		rows.forEach((row) => {
-			const responsable = row.responsable && row.responsable.trim() !== ''
-				? row.responsable
-				: defaultResponsable;
+			const responsable =
+				row.responsable && row.responsable.trim() !== '' ? row.responsable : defaultResponsable;
 
 			if (!responsableGroups.has(responsable)) {
 				responsableGroups.set(responsable, []);
@@ -352,7 +370,10 @@
 		try {
 			// Load view mode
 			const savedMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
-			if (savedMode && (savedMode === 'table' || savedMode === 'split' || savedMode === 'diagram')) {
+			if (
+				savedMode &&
+				(savedMode === 'table' || savedMode === 'split' || savedMode === 'diagram')
+			) {
 				viewMode = savedMode as ViewMode;
 			}
 
@@ -439,7 +460,12 @@
 		<ViewSwitcher bind:viewMode />
 	</header>
 
-	<div class="content-layout" class:table={viewMode === 'table'} class:split={viewMode === 'split'} class:diagram={viewMode === 'diagram'}>
+	<div
+		class="content-layout"
+		class:table={viewMode === 'table'}
+		class:split={viewMode === 'split'}
+		class:diagram={viewMode === 'diagram'}
+	>
 		<!-- Left panel: Table editor -->
 		<div class="editor-panel">
 			<div class="panel-header">
@@ -454,6 +480,15 @@
 			<div class="panel-header">
 				<h2>{modoEdicion ? '✏️ Editor Visual' : '👁️ Vista Previa'}</h2>
 				<div class="header-actions">
+					{#if rows.length > 1}
+						<button
+							class="rebuild-button"
+							onclick={rebuildDiagramLayout}
+							title="Reconstruir diagrama con layout automático"
+						>
+							🔄 Reconstruir Layout
+						</button>
+					{/if}
 					<label class="mode-toggle">
 						<input type="checkbox" bind:checked={modoEdicion} />
 						<span class="toggle-label">{modoEdicion ? '🔓 Edición' : '🔒 Solo lectura'}</span>
@@ -465,13 +500,13 @@
 				{#if flujoActual || currentXml}
 					<!-- Swimlane Headers Overlay -->
 					{#if swimlanes().length > 0}
-						<SwimlaneHeaders swimlanes={swimlanes()} viewportX={viewportX} />
+						<SwimlaneHeaders swimlanes={swimlanes()} {viewportX} />
 					{/if}
 
 					{#key diagramKey}
 						<BpmnModeler
-							flowDefinition={currentXml ? undefined : flujoActual}
-							xml={currentXml}
+							flowDefinition={currentXml ? undefined : (flujoActual ?? undefined)}
+							xml={currentXml ?? undefined}
 							editable={modoEdicion}
 							onChange={handleDiagramChange}
 							onViewportChange={handleViewportChange}
@@ -490,6 +525,29 @@
 		</div>
 	</div>
 </div>
+
+<!-- Confirmation Dialogs -->
+<ConfirmDialog
+	bind:open={showConfirmDialog}
+	title="Cambiar Responsable"
+	description={pendingChange
+		? `¿Desea cambiar el responsable de "${pendingChange.currentResponsable}" a "${pendingChange.newResponsable}"?`
+		: ''}
+	confirmText="Sí, cambiar"
+	cancelText="Cancelar"
+	onConfirm={applyResponsableChange}
+	onCancel={cancelResponsableChange}
+/>
+
+<ConfirmDialog
+	bind:open={showRebuildConfirmDialog}
+	title="Reconstruir Layout Automático"
+	description="¿Desea reconstruir el diagrama con layout automático? Se perderán todas las posiciones personalizadas de los elementos."
+	confirmText="Sí, reconstruir"
+	cancelText="Cancelar"
+	onConfirm={confirmRebuildLayout}
+	onCancel={cancelRebuildLayout}
+/>
 
 <style>
 	.constructor-container {
@@ -586,6 +644,31 @@
 		align-items: center;
 	}
 
+	.rebuild-button {
+		padding: 0.5rem 1rem;
+		background: #f8fafc;
+		border: 1px solid #cbd5e1;
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #475569;
+		cursor: pointer;
+		transition: all 0.2s;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.rebuild-button:hover {
+		background: #f1f5f9;
+		border-color: #94a3b8;
+		color: #334155;
+	}
+
+	.rebuild-button:active {
+		transform: scale(0.98);
+	}
+
 	.mode-toggle {
 		display: flex;
 		align-items: center;
@@ -628,16 +711,3 @@
 		font-size: 1.125rem;
 	}
 </style>
-
-<!-- Confirmation Dialog -->
-<ConfirmDialog
-	bind:open={showConfirmDialog}
-	title="Cambiar Responsable"
-	description={pendingChange
-		? `¿Desea cambiar el responsable de "${pendingChange.currentResponsable}" a "${pendingChange.newResponsable}"?`
-		: ''}
-	confirmText="Sí, cambiar"
-	cancelText="Cancelar"
-	onConfirm={applyResponsableChange}
-	onCancel={cancelResponsableChange}
-/>

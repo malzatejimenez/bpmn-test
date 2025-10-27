@@ -202,9 +202,7 @@
 			<div class="examples">
 				<span class="examples-label">Ejemplos:</span>
 				<button onclick={() => cargarEjemplo('basico')} class="btn-example">Básico</button>
-				<button onclick={() => cargarEjemplo('decision')} class="btn-example"
-					>Con Decisión</button
-				>
+				<button onclick={() => cargarEjemplo('decision')} class="btn-example">Con Decisión</button>
 				<button onclick={() => cargarEjemplo('paralelo')} class="btn-example">Paralelo</button>
 			</div>
 
@@ -218,7 +216,9 @@
 			{/if}
 
 			<div class="help-text">
-				<p><strong>💡 Consejo:</strong> Modifica el código y presiona "Actualizar" para ver los cambios.</p>
+				<p>
+					<strong>💡 Consejo:</strong> Modifica el código y presiona "Actualizar" para ver los cambios.
+				</p>
 				<p>
 					<a href="/GUIA_CONSTRUCCION_FLUJOS.md" target="_blank"
 						>📘 Ver guía completa de construcción</a
@@ -242,8 +242,8 @@
 			<div class="viewer-container">
 				{#if flujoActual || currentXml}
 					<BpmnModeler
-						flowDefinition={currentXml ? undefined : flujoActual}
-						xml={currentXml}
+						flowDefinition={currentXml ? undefined : (flujoActual ?? undefined)}
+						xml={currentXml ?? undefined}
 						class="preview-viewer"
 						editable={modoEdicion}
 						onChange={handleDiagramChange}

@@ -9,7 +9,15 @@
 		onCancel: () => void;
 	}
 
-	let { open = $bindable(), title, description, confirmText = 'Confirmar', cancelText = 'Cancelar', onConfirm, onCancel }: Props = $props();
+	let {
+		open = $bindable(),
+		title,
+		description,
+		confirmText = 'Confirmar',
+		cancelText = 'Cancelar',
+		onConfirm,
+		onCancel
+	}: Props = $props();
 
 	function handleConfirm() {
 		onConfirm();
@@ -26,15 +34,23 @@
 			handleCancel();
 		}
 	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			handleCancel();
+		}
+	}
 </script>
 
 {#if open}
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		onclick={handleBackdropClick}
+		onkeydown={handleKeydown}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="dialog-title"
+		tabindex="-1"
 	>
 		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
 			<h2 id="dialog-title" class="mb-2 text-lg font-semibold text-gray-900">
