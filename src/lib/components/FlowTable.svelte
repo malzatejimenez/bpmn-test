@@ -15,6 +15,7 @@
 
 	let { rows, onChange }: Props = $props();
 	let lastMovedRowId = $state<string | null>(null);
+	let showAutoSortDialog = $state(false);
 
 	let nextRowNumber = $derived(rows.length > 0 ? Math.max(...rows.map((r) => r.rowNumber)) + 1 : 1);
 
@@ -96,6 +97,76 @@
 		onChange(updated);
 	}
 
+	// Auto-sort rows by logical flow (follows connections)
+	function autoSortByLogic() {
+		if (rows.length === 0) return;
+
+		// Build dependency maps
+		const incomingEdges = new Map<string, string[]>();
+		const outgoingEdges = new Map<string, string[]>();
+
+		rows.forEach((row) => {
+			outgoingEdges.set(row.id, row.connectsTo.map((c) => c.targetId));
+
+			row.connectsTo.forEach((conn) => {
+				if (!incomingEdges.has(conn.targetId)) {
+					incomingEdges.set(conn.targetId, []);
+				}
+				incomingEdges.get(conn.targetId)!.push(row.id);
+			});
+		});
+
+		// Find root nodes (StartEvents or nodes without incoming edges)
+		const roots = rows.filter((row) => {
+			const hasIncoming = incomingEdges.get(row.id)?.length > 0;
+			return !hasIncoming || row.type === 'startEvent';
+		});
+
+		// If no roots found, use first row as root
+		if (roots.length === 0 && rows.length > 0) {
+			roots.push(rows[0]);
+		}
+
+		// BFS to sort topologically
+		const sorted: string[] = [];
+		const visited = new Set<string>();
+		const queue = roots.map((r) => r.id);
+
+		while (queue.length > 0) {
+			const nodeId = queue.shift()!;
+			if (visited.has(nodeId)) continue;
+
+			visited.add(nodeId);
+			sorted.push(nodeId);
+
+			// Add child nodes to queue
+			const targets = outgoingEdges.get(nodeId) || [];
+			targets.forEach((targetId) => {
+				if (!visited.has(targetId)) {
+					queue.push(targetId);
+				}
+			});
+		}
+
+		// Add orphan nodes (not connected) at the end
+		rows.forEach((row) => {
+			if (!visited.has(row.id)) {
+				sorted.push(row.id);
+			}
+		});
+
+		// Reorder rows based on sorted order
+		const newRows = sorted
+			.map((id) => rows.find((r) => r.id === id))
+			.filter((r): r is TableRow => r !== undefined)
+			.map((row, index) => ({
+				...row,
+				rowNumber: index + 1
+			}));
+
+		onChange(newRows);
+	}
+
 	// Generate auto ID
 	function generateId(prefix: string, number: number): string {
 		return `${prefix}_${number}`;
@@ -125,6 +196,9 @@
 <div class="flow-table-container">
 	<div class="table-actions">
 		<button onclick={addRow} class="btn-add">+ Agregar Actividad</button>
+		<button onclick={() => (showAutoSortDialog = true)} class="btn-auto-sort" title="Ordenar automáticamente por flujo lógico">
+			🔄 Ordenar por flujo
+		</button>
 	</div>
 
 	<div class="table-wrapper">
@@ -245,6 +319,35 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- Auto-Sort Confirmation Dialog -->
+	{#if showAutoSortDialog}
+		<div class="dialog-overlay" onclick={() => (showAutoSortDialog = false)}>
+			<div class="dialog" onclick={(e) => e.stopPropagation()}>
+				<h3>🔄 Ordenar por flujo lógico</h3>
+				<p>
+					¿Deseas reordenar automáticamente todas las actividades siguiendo la secuencia de conexiones del proceso?
+				</p>
+				<p class="dialog-note">
+					⚠️ Esta acción reorganizará todas las filas según el flujo lógico (StartEvent → actividades → EndEvent).
+				</p>
+				<div class="dialog-actions">
+					<button class="btn-cancel" onclick={() => (showAutoSortDialog = false)}>
+						Cancelar
+					</button>
+					<button
+						class="btn-confirm"
+						onclick={() => {
+							autoSortByLogic();
+							showAutoSortDialog = false;
+						}}
+					>
+						Ordenar
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -275,6 +378,22 @@
 
 	.btn-add:hover {
 		background: #2563eb;
+	}
+
+	.btn-auto-sort {
+		padding: 0.5rem 1rem;
+		background: #10b981;
+		color: white;
+		border: none;
+		border-radius: 0.375rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background 0.2s;
+		font-size: 0.875rem;
+	}
+
+	.btn-auto-sort:hover {
+		background: #059669;
 	}
 
 	.table-wrapper {
@@ -448,5 +567,87 @@
 		text-align: center;
 		padding: 3rem;
 		color: #94a3b8;
+	}
+
+	/* Dialog styles */
+	.dialog-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+		backdrop-filter: blur(2px);
+	}
+
+	.dialog {
+		background: white;
+		border-radius: 0.5rem;
+		padding: 1.5rem;
+		max-width: 500px;
+		width: 90%;
+		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+	}
+
+	.dialog h3 {
+		margin: 0 0 1rem 0;
+		font-size: 1.25rem;
+		color: #1e293b;
+	}
+
+	.dialog p {
+		margin: 0 0 1rem 0;
+		color: #475569;
+		line-height: 1.6;
+	}
+
+	.dialog-note {
+		background: #fef3c7;
+		border-left: 3px solid #f59e0b;
+		padding: 0.75rem;
+		border-radius: 0.25rem;
+		font-size: 0.875rem;
+		color: #92400e;
+	}
+
+	.dialog-actions {
+		display: flex;
+		gap: 0.75rem;
+		justify-content: flex-end;
+		margin-top: 1.5rem;
+	}
+
+	.btn-cancel {
+		padding: 0.5rem 1rem;
+		background: #e2e8f0;
+		color: #475569;
+		border: none;
+		border-radius: 0.375rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.btn-cancel:hover {
+		background: #cbd5e1;
+	}
+
+	.btn-confirm {
+		padding: 0.5rem 1rem;
+		background: #10b981;
+		color: white;
+		border: none;
+		border-radius: 0.375rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.btn-confirm:hover {
+		background: #059669;
 	}
 </style>
