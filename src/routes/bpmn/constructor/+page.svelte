@@ -4,6 +4,7 @@
 	import BpmnModeler from '$lib/components/BpmnModeler.svelte';
 	import FlowTable from '$lib/components/FlowTable.svelte';
 	import FloatingViewSwitcher from '$lib/components/FloatingViewSwitcher.svelte';
+	import ResizableDivider from '$lib/components/ResizableDivider.svelte';
 	import SwimlaneHeaders from '$lib/components/SwimlaneHeaders.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import type { TableRow } from '$lib/types/flow-table.types';
@@ -19,7 +20,8 @@
 		ROWS: 'bpmn-constructor-rows',
 		XML: 'bpmn-constructor-xml',
 		VIEW_MODE: 'bpmn-view-mode',
-		EDIT_MODE: 'bpmn-edit-mode'
+		EDIT_MODE: 'bpmn-edit-mode',
+		SPLIT_POSITION: 'bpmn-split-position'
 	};
 
 	// Default initial row
@@ -41,9 +43,11 @@
 	let modoEdicion = $state(false);
 	let viewMode = $state<ViewMode>('split');
 	let viewportX = $state(0);
+	let viewportScale = $state(1);
 	let diagramKey = $state(0); // Key to force diagram re-render
 	let modelerInstance = $state<any>(null); // Reference to BpmnModeler instance
 	let isApplyingIncrementalUpdate = $state(false); // Flag to prevent update loops
+	let leftPanelWidth = $state(50); // Width percentage for resizable split (30-70%)
 
 	// State for confirmation dialogs
 	let showConfirmDialog = $state(false);
@@ -170,6 +174,7 @@
 	// Handle viewport changes (pan/zoom/scroll)
 	function handleViewportChange(viewbox: any) {
 		viewportX = viewbox.x;
+		viewportScale = viewbox.scale || 1;
 	}
 
 	// Handle modeler ready (receive modeler instance reference)
@@ -363,6 +368,11 @@
 		});
 	});
 
+	// Handle resize of split panels
+	function handleResize(newWidth: number) {
+		leftPanelWidth = newWidth;
+	}
+
 	// Load data from localStorage
 	function loadFromStorage() {
 		if (!browser) return;
@@ -381,6 +391,15 @@
 			const savedEditMode = localStorage.getItem(STORAGE_KEYS.EDIT_MODE);
 			if (savedEditMode !== null) {
 				modoEdicion = savedEditMode === 'true';
+			}
+
+			// Load split position
+			const savedSplitPosition = localStorage.getItem(STORAGE_KEYS.SPLIT_POSITION);
+			if (savedSplitPosition !== null) {
+				const position = parseFloat(savedSplitPosition);
+				if (!isNaN(position) && position >= 30 && position <= 70) {
+					leftPanelWidth = position;
+				}
 			}
 
 			// Load table rows
@@ -449,6 +468,13 @@
 			localStorage.setItem(STORAGE_KEYS.EDIT_MODE, String(modoEdicion));
 		}
 	});
+
+	// Auto-save split position when it changes
+	$effect(() => {
+		if (browser) {
+			localStorage.setItem(STORAGE_KEYS.SPLIT_POSITION, String(leftPanelWidth));
+		}
+	});
 </script>
 
 <div class="constructor-container">
@@ -462,13 +488,18 @@
 		class:diagram={viewMode === 'diagram'}
 	>
 		<!-- Left panel: Table editor -->
-		<div class="editor-panel">
+		<div class="editor-panel" style="width: {viewMode === 'split' ? `${leftPanelWidth}%` : 'auto'}">
 			<div class="panel-header">
 				<h2>📝 Actividades y Flujo</h2>
 			</div>
 
 			<FlowTable {rows} onChange={handleTableChange} />
 		</div>
+
+		<!-- Resizable Divider - only visible in split mode -->
+		{#if viewMode === 'split'}
+			<ResizableDivider onResize={handleResize} />
+		{/if}
 
 		<!-- Right panel: Visual preview -->
 		<div class="preview-panel">
@@ -495,7 +526,7 @@
 				{#if flujoActual || currentXml}
 					<!-- Swimlane Headers Overlay -->
 					{#if swimlanes().length > 0}
-						<SwimlaneHeaders swimlanes={swimlanes()} {viewportX} />
+						<SwimlaneHeaders swimlanes={swimlanes()} {viewportX} {viewportScale} />
 					{/if}
 
 					{#key diagramKey}
@@ -553,19 +584,18 @@
 
 	.content-layout {
 		position: relative;
-		display: grid;
-		gap: 1rem;
+		display: flex;
 		height: calc(100vh - 2rem);
-		transition: grid-template-columns 0.3s ease;
 	}
 
-	/* Split view (default) - both panels */
+	/* Split view - resizable panels */
 	.content-layout.split {
-		grid-template-columns: 1fr 1fr;
+		display: flex;
 	}
 
 	/* Table only view - hide preview but keep it mounted */
 	.content-layout.table {
+		display: grid;
 		grid-template-columns: 1fr;
 	}
 
@@ -578,6 +608,7 @@
 
 	/* Diagram only view - hide editor but keep it mounted */
 	.content-layout.diagram {
+		display: grid;
 		grid-template-columns: 1fr;
 	}
 
@@ -596,6 +627,25 @@
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
+	}
+
+	/* Editor panel sizing in split mode */
+	.content-layout.split .editor-panel {
+		min-width: 30%;
+		max-width: 70%;
+		flex-shrink: 0;
+	}
+
+	/* Preview panel takes remaining space in split mode */
+	.content-layout.split .preview-panel {
+		flex: 1;
+		min-width: 0; /* Allow flex shrinking */
+	}
+
+	/* Full width in single-panel modes */
+	.content-layout.table .editor-panel,
+	.content-layout.diagram .preview-panel {
+		width: 100%;
 	}
 
 	.panel-header {

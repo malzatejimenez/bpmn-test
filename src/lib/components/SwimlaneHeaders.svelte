@@ -8,16 +8,17 @@
 	interface Props {
 		swimlanes: Swimlane[];
 		viewportX?: number;
+		viewportScale?: number;
 	}
 
-	let { swimlanes, viewportX = 0 }: Props = $props();
+	let { swimlanes, viewportX = 0, viewportScale = 1 }: Props = $props();
 </script>
 
 <div class="swimlane-columns">
 	{#each swimlanes as lane}
 		<div
 			class="swimlane-column"
-			style="left: {lane.xPosition - viewportX}px; width: {lane.width}px;"
+			style="left: {(lane.xPosition - viewportX) * viewportScale}px; width: {lane.width * viewportScale}px;"
 		>
 			<div class="column-header">
 				<span class="responsable-icon">👤</span>
