@@ -4,6 +4,7 @@
 	import NodeTypeSelect from './NodeTypeSelect.svelte';
 	import ConnectionsCell from './ConnectionsCell.svelte';
 	import ResponsableAutocomplete from './ResponsableAutocomplete.svelte';
+	import MultiValueCell from './MultiValueCell.svelte';
 	import { flip } from 'svelte/animate';
 	import { fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -27,6 +28,9 @@
 			type: 'task',
 			label: '',
 			responsable: '',
+			suppliers: [],
+			inputs: [],
+			outputs: [],
 			connectsTo: []
 		};
 
@@ -210,6 +214,9 @@
 					<th class="col-type">Tipo</th>
 					<th class="col-label">Nombre</th>
 					<th class="col-responsable">Responsable</th>
+					<th class="col-supplier">Proveedores</th>
+					<th class="col-input">Inputs</th>
+					<th class="col-output">Outputs</th>
 					<th class="col-connections">Conecta a</th>
 					<th class="col-actions">Acciones</th>
 				</tr>
@@ -266,6 +273,33 @@
 								value={row.responsable || ''}
 								{availableResponsables}
 								onChange={(newValue) => updateRow(row.rowNumber, 'responsable', newValue)}
+							/>
+						</td>
+
+						<!-- Suppliers -->
+						<td class="col-supplier">
+							<MultiValueCell
+								values={row.suppliers}
+								placeholder="Proveedor"
+								onChange={(newValues) => updateRow(row.rowNumber, 'suppliers', newValues)}
+							/>
+						</td>
+
+						<!-- Inputs -->
+						<td class="col-input">
+							<MultiValueCell
+								values={row.inputs}
+								placeholder="Input"
+								onChange={(newValues) => updateRow(row.rowNumber, 'inputs', newValues)}
+							/>
+						</td>
+
+						<!-- Outputs -->
+						<td class="col-output">
+							<MultiValueCell
+								values={row.outputs}
+								placeholder="Output"
+								onChange={(newValues) => updateRow(row.rowNumber, 'outputs', newValues)}
 							/>
 						</td>
 
@@ -455,6 +489,21 @@
 	}
 
 	.col-responsable {
+		min-width: 150px;
+		width: 180px;
+	}
+
+	.col-supplier {
+		min-width: 150px;
+		width: 180px;
+	}
+
+	.col-input {
+		min-width: 150px;
+		width: 180px;
+	}
+
+	.col-output {
 		min-width: 150px;
 		width: 180px;
 	}

@@ -31,6 +31,10 @@
 			id: 'start',
 			type: 'startEvent',
 			label: 'Inicio',
+			responsable: '',
+			suppliers: [],
+			inputs: [],
+			outputs: [],
 			connectsTo: []
 		}
 	];
@@ -407,7 +411,13 @@
 			if (savedRows) {
 				const parsed = JSON.parse(savedRows);
 				if (Array.isArray(parsed) && parsed.length > 0) {
-					rows = parsed;
+					// Migrate old data: ensure suppliers, inputs, outputs exist
+					rows = parsed.map((row) => ({
+						...row,
+						suppliers: row.suppliers || [],
+						inputs: row.inputs || [],
+						outputs: row.outputs || []
+					}));
 				}
 			}
 
