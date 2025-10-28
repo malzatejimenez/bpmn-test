@@ -86,11 +86,35 @@
 			}))
 		);
 
+		// Create annotations for outputs
+		const annotations: any[] = [];
+		const associations: any[] = [];
+
+		tableRows.forEach((row) => {
+			if (row.outputs && row.outputs.length > 0) {
+				const annotationId = `annotation_${row.id}`;
+				const outputText = row.outputs.map(o => `• ${o}`).join('\n');
+
+				annotations.push({
+					id: annotationId,
+					text: outputText
+				});
+
+				associations.push({
+					id: `association_${row.id}`,
+					sourceRef: row.id,
+					targetRef: annotationId
+				});
+			}
+		});
+
 		const flowDef: BPMNFlowDefinition = {
 			id: 'Process_Constructor',
 			name: 'Flujo desde Constructor',
 			nodes,
-			connections
+			connections,
+			annotations,
+			associations
 		};
 
 		// Apply auto-layout to generate positions
@@ -397,16 +421,6 @@
 		return map;
 	});
 
-	// Calculate outputs map for visualization
-	let outputsMap = $derived(() => {
-		const map: Record<string, string[]> = {};
-		rows.forEach((row) => {
-			if (row.outputs && row.outputs.length > 0) {
-				map[row.id] = row.outputs;
-			}
-		});
-		return map;
-	});
 
 	// Calculate swimlanes based on responsables (vertical columns)
 	let swimlanes = $derived(() => {
@@ -648,7 +662,6 @@
 							editable={modoEdicion}
 							secondaryResponsables={secondaryResponsablesMap()}
 							swimlanePositions={swimlanePositions()}
-							outputs={outputsMap()}
 							onChange={handleDiagramChange}
 							onViewportChange={handleViewportChange}
 							onModelerReady={handleModelerReady}

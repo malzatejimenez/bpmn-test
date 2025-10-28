@@ -83,6 +83,29 @@ export class BpmnBuilder {
 			flowElements.push(sequenceFlow);
 		}
 
+		// Create text annotations
+		if (flowDefinition.annotations) {
+			for (const annotation of flowDefinition.annotations) {
+				const textAnnotation = this.moddle.create('bpmn:TextAnnotation', {
+					id: annotation.id,
+					text: annotation.text
+				});
+				flowElements.push(textAnnotation);
+			}
+		}
+
+		// Create associations
+		if (flowDefinition.associations) {
+			for (const association of flowDefinition.associations) {
+				const assoc = this.moddle.create('bpmn:Association', {
+					id: association.id,
+					sourceRef: this.moddle.create('bpmn:FlowNode', { id: association.sourceRef }),
+					targetRef: this.moddle.create('bpmn:TextAnnotation', { id: association.targetRef })
+				});
+				flowElements.push(assoc);
+			}
+		}
+
 		return this.moddle.create('bpmn:Process', {
 			id: flowDefinition.id,
 			name: flowDefinition.name,
@@ -176,10 +199,26 @@ export class BpmnBuilder {
 			planeElements.push(shape);
 		}
 
+		// Create shapes for annotations
+		if (flowDefinition.annotations) {
+			for (const annotation of flowDefinition.annotations) {
+				const shape = this.createAnnotationShape(annotation);
+				planeElements.push(shape);
+			}
+		}
+
 		// Create edges for connections
 		for (const connection of flowDefinition.connections) {
 			const edge = this.createBPMNEdge(connection, flowDefinition.nodes);
 			planeElements.push(edge);
+		}
+
+		// Create edges for associations
+		if (flowDefinition.associations) {
+			for (const association of flowDefinition.associations) {
+				const edge = this.createAssociationEdge(association, flowDefinition.nodes, flowDefinition.annotations || []);
+				planeElements.push(edge);
+			}
 		}
 
 		return this.moddle.create('bpmndi:BPMNPlane', {
@@ -407,6 +446,68 @@ export class BpmnBuilder {
 	}
 
 	/**
+	 * Create BPMN shape for an annotation
+	 */
+	private createAnnotationShape(annotation: any) {
+		const position = annotation.position || this.generatePosition();
+		const dimensions = annotation.dimensions || { width: 160, height: 80 };
+
+		const bounds = this.moddle.create('dc:Bounds', {
+			x: position.x,
+			y: position.y,
+			width: dimensions.width,
+			height: dimensions.height
+		});
+
+		return this.moddle.create('bpmndi:BPMNShape', {
+			id: `${annotation.id}_di`,
+			bpmnElement: this.moddle.create('bpmn:TextAnnotation', { id: annotation.id }),
+			bounds
+		});
+	}
+
+	/**
+	 * Create BPMN edge for an association
+	 */
+	private createAssociationEdge(association: any, nodes: any[], annotations: any[]) {
+		const sourceNode = nodes.find((n) => n.id === association.sourceRef);
+		const targetAnnotation = annotations.find((a) => a.id === association.targetRef);
+
+		const waypoints: any[] = [];
+
+		if (sourceNode && targetAnnotation) {
+			const sourcePos = sourceNode.position || { x: 100, y: 100 };
+			const targetPos = targetAnnotation.position || { x: 300, y: 100 };
+
+			const sourceDims = sourceNode.dimensions ||
+				BPMN_DEFAULT_DIMENSIONS[sourceNode.type] || { width: 100, height: 80 };
+			const targetDims = targetAnnotation.dimensions || { width: 160, height: 80 };
+
+			// From source bottom-right corner
+			const sourceX = sourcePos.x + (sourceDims.width ?? 100);
+			const sourceY = sourcePos.y + (sourceDims.height ?? 80);
+
+			// To target top-left corner
+			const targetX = targetPos.x;
+			const targetY = targetPos.y + 5;
+
+			waypoints.push(
+				this.moddle.create('dc:Point', { x: sourceX, y: sourceY })
+			);
+
+			waypoints.push(
+				this.moddle.create('dc:Point', { x: targetX, y: targetY })
+			);
+		}
+
+		return this.moddle.create('bpmndi:BPMNEdge', {
+			id: `${association.id}_di`,
+			bpmnElement: this.moddle.create('bpmn:Association', { id: association.id }),
+			waypoint: waypoints
+		});
+	}
+
+	/**
 	 * Auto-layout nodes in a top-to-bottom flow, grouped by responsable (vertical swimlanes/columns)
 	 * Respects the order of nodes in the table - nodes appearing earlier are positioned higher
 	 * ALL nodes share the same vertical space based on their table row index
@@ -458,6 +559,29 @@ export class BpmnBuilder {
 
 			node.position = { x, y };
 		});
+
+		// Position annotations below and to the right of their associated nodes
+		if (layouted.annotations && layouted.associations) {
+			layouted.annotations.forEach((annotation) => {
+				// Find the association that targets this annotation
+				const association = layouted.associations!.find((a) => a.targetRef === annotation.id);
+				if (association) {
+					// Find the source node
+					const sourceNode = layouted.nodes.find((n) => n.id === association.sourceRef);
+					if (sourceNode && sourceNode.position) {
+						const sourceDims = sourceNode.dimensions ||
+							BPMN_DEFAULT_DIMENSIONS[sourceNode.type] || { width: 100, height: 80 };
+
+						// Position annotation below and to the right
+						annotation.position = {
+							x: sourceNode.position.x + (sourceDims.width ?? 100) / 2 + 40,
+							y: sourceNode.position.y + (sourceDims.height ?? 80) + 20
+						};
+						annotation.dimensions = { width: 160, height: 80 };
+					}
+				}
+			});
+		}
 
 		return layouted;
 	}

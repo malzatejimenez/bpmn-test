@@ -61,6 +61,25 @@ export interface BPMNConnection {
 }
 
 /**
+ * BPMN Text Annotation
+ */
+export interface BPMNAnnotation {
+	id: string;
+	text: string;
+	position?: BPMNPosition;
+	dimensions?: BPMNDimensions;
+}
+
+/**
+ * BPMN Association (links annotations to elements)
+ */
+export interface BPMNAssociation {
+	id: string;
+	sourceRef: string; // source element id
+	targetRef: string; // target annotation id
+}
+
+/**
  * Complete BPMN Flow Definition
  */
 export interface BPMNFlowDefinition {
@@ -68,6 +87,8 @@ export interface BPMNFlowDefinition {
 	name: string;
 	nodes: BPMNNode[];
 	connections: BPMNConnection[];
+	annotations?: BPMNAnnotation[];
+	associations?: BPMNAssociation[];
 	metadata?: {
 		version?: string;
 		author?: string;

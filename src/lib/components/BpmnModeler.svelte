@@ -13,7 +13,6 @@
 		editable?: boolean;
 		secondaryResponsables?: Record<string, string[]>; // Map of elementId -> array of secondary responsables
 		swimlanePositions?: Record<string, number>; // Map of responsable -> xPosition
-		outputs?: Record<string, string[]>; // Map of elementId -> array of outputs
 		onChange?: (xml: string) => void;
 		onViewportChange?: (viewbox: any) => void;
 		onModelerReady?: (modelerInstance: any) => void;
@@ -32,7 +31,6 @@
 		editable = true,
 		secondaryResponsables = {},
 		swimlanePositions = {},
-		outputs = {},
 		onChange,
 		onViewportChange,
 		onModelerReady,
@@ -221,101 +219,6 @@
 	}
 
 	/**
-	 * Draw output boxes below and to the right of elements
-	 */
-	function drawOutputBoxes() {
-		if (!modeler || !outputs || Object.keys(outputs).length === 0) return;
-
-		try {
-			const canvas = modeler.get('canvas');
-			const elementRegistry = modeler.get('elementRegistry');
-
-			// Get the root SVG layer
-			const svgRoot = canvas.getDefaultLayer();
-
-			// Remove existing output boxes group if exists
-			const existingGroup = svgRoot.querySelector('#output-boxes');
-			if (existingGroup) {
-				existingGroup.remove();
-			}
-
-			// Create SVG group for all output boxes
-			const boxesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-			boxesGroup.id = 'output-boxes';
-			boxesGroup.setAttribute('class', 'output-boxes-layer');
-			svgRoot.appendChild(boxesGroup);
-
-			// Draw box for each element with outputs
-			Object.entries(outputs).forEach(([elementId, outputList]) => {
-				if (!outputList || outputList.length === 0) return;
-
-				const element = elementRegistry.get(elementId);
-				if (!element) return;
-
-				// Calculate position: below element + offset to the right
-				const boxX = element.x + element.width / 2 + 40;
-				const boxY = element.y + element.height + 20;
-				const lineHeight = 18;
-				const padding = 8;
-				const boxWidth = 160;
-				const boxHeight = padding * 2 + lineHeight * outputList.length;
-
-				// Draw connector line from element to box (dashed diagonal)
-				const lineStartX = element.x + element.width;
-				const lineStartY = element.y + element.height;
-				const lineEndX = boxX;
-				const lineEndY = boxY + 5;
-
-				const connectorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-				connectorLine.setAttribute('x1', String(lineStartX));
-				connectorLine.setAttribute('y1', String(lineStartY));
-				connectorLine.setAttribute('x2', String(lineEndX));
-				connectorLine.setAttribute('y2', String(lineEndY));
-				connectorLine.setAttribute('stroke', '#10b981');
-				connectorLine.setAttribute('stroke-width', '1.5');
-				connectorLine.setAttribute('stroke-dasharray', '4,3');
-				connectorLine.setAttribute('opacity', '0.6');
-				connectorLine.setAttribute('pointer-events', 'none');
-				boxesGroup.appendChild(connectorLine);
-
-				// Draw box background
-				const box = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-				box.setAttribute('x', String(boxX));
-				box.setAttribute('y', String(boxY));
-				box.setAttribute('width', String(boxWidth));
-				box.setAttribute('height', String(boxHeight));
-				box.setAttribute('fill', '#f0fdf4');
-				box.setAttribute('stroke', '#10b981');
-				box.setAttribute('stroke-width', '1.5');
-				box.setAttribute('stroke-dasharray', '3,2');
-				box.setAttribute('rx', '6');
-				box.setAttribute('opacity', '0.95');
-				box.setAttribute('pointer-events', 'none');
-				boxesGroup.appendChild(box);
-
-				// Draw each output as a list item
-				outputList.forEach((output, index) => {
-					const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-					text.setAttribute('x', String(boxX + padding));
-					text.setAttribute('y', String(boxY + padding + lineHeight * (index + 1) - 4));
-					text.setAttribute('font-size', '11');
-					text.setAttribute('fill', '#047857');
-					text.setAttribute('pointer-events', 'none');
-					text.textContent = `• ${output}`;
-					boxesGroup.appendChild(text);
-				});
-
-				// Add tooltip to box
-				const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-				title.textContent = `Outputs: ${outputList.join(', ')}`;
-				box.appendChild(title);
-			});
-		} catch (err) {
-			console.warn('Error drawing output boxes:', err);
-		}
-	}
-
-	/**
 	 * Draw dashed lines from elements to secondary responsables swimlanes
 	 */
 	function drawSecondaryResponsablesLines() {
@@ -451,9 +354,6 @@
 			// Draw secondary responsables lines
 			drawSecondaryResponsablesLines();
 
-			// Draw output boxes
-			drawOutputBoxes();
-
 			// Notify parent that modeler is ready
 			if (onModelerReady && modeler) {
 				onModelerReady(modeler);
@@ -527,9 +427,6 @@
 
 			// Draw secondary responsables lines after diagram is loaded
 			drawSecondaryResponsablesLines();
-
-			// Draw output boxes after diagram is loaded
-			drawOutputBoxes();
 
 			// Save the loaded XML via onChange callback (for persistence)
 			if (onChange) {
@@ -620,13 +517,6 @@
 	$effect(() => {
 		if (modeler && secondaryResponsables && swimlanePositions) {
 			drawSecondaryResponsablesLines();
-		}
-	});
-
-	// Reactive effect to update output boxes when outputs change
-	$effect(() => {
-		if (modeler && outputs) {
-			drawOutputBoxes();
 		}
 	});
 
