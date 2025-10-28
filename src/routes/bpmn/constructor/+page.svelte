@@ -31,7 +31,7 @@
 			id: 'start',
 			type: 'startEvent',
 			label: 'Inicio',
-			responsable: '',
+			responsables: [],
 			suppliers: [],
 			inputs: [],
 			outputs: [],
@@ -72,7 +72,7 @@
 			id: row.id,
 			type: row.type,
 			label: row.label,
-			responsable: row.responsable
+			responsable: row.responsables && row.responsables.length > 0 ? row.responsables[0] : undefined
 		}));
 
 		// Create connections from all rows
@@ -184,6 +184,44 @@
 	// Handle modeler ready (receive modeler instance reference)
 	function handleModelerReady(modelerRef: any) {
 		modelerInstance = modelerRef;
+		// Adjust element positions to match swimlanes
+		adjustElementPositionsToSwimlanes();
+	}
+
+	// Adjust element X positions to match their swimlanes
+	function adjustElementPositionsToSwimlanes() {
+		if (!modelerInstance || rows.length === 0) return;
+
+		try {
+			const modeling = modelerInstance.get('modeling');
+			const elementRegistry = modelerInstance.get('elementRegistry');
+			const positions = swimlanePositions();
+			const swimlaneWidth = 300;
+
+			rows.forEach((row) => {
+				const element = elementRegistry.get(row.id);
+				if (!element) return;
+
+				const primaryResponsable =
+					row.responsables && row.responsables.length > 0 ? row.responsables[0] : 'Sin asignar';
+				const swimlaneLeftEdge = positions[primaryResponsable];
+
+				if (swimlaneLeftEdge !== undefined) {
+					// Calculate center of swimlane column
+					const swimlaneCenterX = swimlaneLeftEdge + swimlaneWidth / 2;
+					// Target X should center the element in the column
+					const targetX = swimlaneCenterX - element.width / 2;
+
+					if (element.x !== targetX) {
+						// Calculate delta to move to correct centered position
+						const deltaX = targetX - element.x;
+						modeling.moveElements([element], { x: deltaX, y: 0 });
+					}
+				}
+			});
+		} catch (err) {
+			console.warn('Error adjusting positions to swimlanes:', err);
+		}
 	}
 
 	// Determine responsable from X position in diagram
@@ -221,7 +259,10 @@
 
 		// Determine new responsable based on X position
 		const newResponsable = determineResponsableFromPosition(newPosition.x);
-		const currentResponsable = rows[rowIndex].responsable || 'Sin asignar';
+		const currentResponsable =
+			rows[rowIndex].responsables && rows[rowIndex].responsables.length > 0
+				? rows[rowIndex].responsables[0]
+				: 'Sin asignar';
 
 		// If responsable changed, show confirmation dialog
 		if (newResponsable !== currentResponsable) {
@@ -245,8 +286,11 @@
 		if (rowIndex === -1) return;
 
 		const updatedRows = [...rows];
-		updatedRows[rowIndex].responsable =
-			change.newResponsable === 'Sin asignar' ? '' : change.newResponsable;
+		const newPrimaryResponsable =
+			change.newResponsable === 'Sin asignar' ? [] : [change.newResponsable];
+		// Keep secondary responsables, only change primary (first element)
+		const secondaryResponsables = updatedRows[rowIndex].responsables.slice(1);
+		updatedRows[rowIndex].responsables = [...newPrimaryResponsable, ...secondaryResponsables];
 
 		// Set flag to prevent triggering incremental update back to diagram
 		isApplyingIncrementalUpdate = true;
@@ -316,12 +360,14 @@
 			hasChanges = true;
 		}
 
-		// For 'responsable': only update if it's not empty OR if it was explicitly cleared
+		// For 'responsable': update primary responsable (first element)
 		// Don't overwrite existing responsable with empty value from diagram edits
-		if (properties.responsable !== undefined && properties.responsable !== row.responsable) {
+		const currentPrimaryResponsable = row.responsables && row.responsables.length > 0 ? row.responsables[0] : '';
+		if (properties.responsable !== undefined && properties.responsable !== currentPrimaryResponsable) {
 			// Only update if new value is non-empty, OR if old value exists and new is explicitly empty
-			if (properties.responsable !== '' || row.responsable === '') {
-				row.responsable = properties.responsable;
+			if (properties.responsable !== '' || currentPrimaryResponsable === '') {
+				const secondaryResponsables = row.responsables.slice(1);
+				row.responsables = properties.responsable !== '' ? [properties.responsable, ...secondaryResponsables] : secondaryResponsables;
 				hasChanges = true;
 			}
 		}
@@ -339,30 +385,60 @@
 		}, 100);
 	}
 
+	// Calculate secondary responsables map for visualization
+	let secondaryResponsablesMap = $derived(() => {
+		const map: Record<string, string[]> = {};
+		rows.forEach((row) => {
+			if (row.responsables && row.responsables.length > 1) {
+				// Skip first element (primary responsable)
+				map[row.id] = row.responsables.slice(1);
+			}
+		});
+		return map;
+	});
+
 	// Calculate swimlanes based on responsables (vertical columns)
 	let swimlanes = $derived(() => {
 		if (!rows || rows.length === 0) return [];
 
-		// Group by responsable
+		// Collect ALL unique responsables (primary + secondary)
+		const allResponsables = new Set<string>();
 		const responsableGroups = new Map<string, TableRow[]>();
 		const defaultResponsable = 'Sin asignar';
 
 		rows.forEach((row) => {
-			const responsable =
-				row.responsable && row.responsable.trim() !== '' ? row.responsable : defaultResponsable;
-
-			if (!responsableGroups.has(responsable)) {
-				responsableGroups.set(responsable, []);
+			// Add all responsables from this row (primary and secondary)
+			if (row.responsables && row.responsables.length > 0) {
+				row.responsables.forEach((resp) => {
+					if (resp && resp.trim() !== '') {
+						allResponsables.add(resp);
+					}
+				});
 			}
-			responsableGroups.get(responsable)!.push(row);
+
+			// Group rows by PRIMARY responsable (for positioning main activities)
+			const primaryResponsable =
+				row.responsables && row.responsables.length > 0 && row.responsables[0].trim() !== ''
+					? row.responsables[0]
+					: defaultResponsable;
+
+			if (!responsableGroups.has(primaryResponsable)) {
+				responsableGroups.set(primaryResponsable, []);
+			}
+			responsableGroups.get(primaryResponsable)!.push(row);
 		});
 
-		// Create vertical swimlane columns matching auto-layout
+		// If no responsables at all, add default
+		if (allResponsables.size === 0) {
+			allResponsables.add(defaultResponsable);
+		}
+
+		// Create vertical swimlane columns for ALL responsables
 		const swimlaneWidth = 300; // Width of each column
 		const swimlanePadding = 50; // Horizontal padding within swimlane
 		let currentXBase = 100;
 
-		return Array.from(responsableGroups.keys()).map((responsable, index) => {
+		return Array.from(allResponsables).map((responsable, index) => {
 			const xPos = currentXBase + index * swimlaneWidth + swimlanePadding;
 			return {
 				responsable,
@@ -370,6 +446,15 @@
 				width: swimlaneWidth
 			};
 		});
+	});
+
+	// Calculate swimlane positions map for visualization
+	let swimlanePositions = $derived(() => {
+		const positions: Record<string, number> = {};
+		swimlanes().forEach((lane) => {
+			positions[lane.responsable] = lane.xPosition;
+		});
+		return positions;
 	});
 
 	// Handle resize of split panels
@@ -411,9 +496,15 @@
 			if (savedRows) {
 				const parsed = JSON.parse(savedRows);
 				if (Array.isArray(parsed) && parsed.length > 0) {
-					// Migrate old data: ensure suppliers, inputs, outputs exist
+					// Migrate old data: ensure all array fields exist
 					rows = parsed.map((row) => ({
 						...row,
+						// Convert old single responsable to array format
+						responsables: row.responsables
+							? row.responsables
+							: row.responsable
+								? [row.responsable]
+								: [],
 						suppliers: row.suppliers || [],
 						inputs: row.inputs || [],
 						outputs: row.outputs || []
@@ -544,6 +635,8 @@
 							flowDefinition={currentXml ? undefined : (flujoActual ?? undefined)}
 							xml={currentXml ?? undefined}
 							editable={modoEdicion}
+							secondaryResponsables={secondaryResponsablesMap()}
+							swimlanePositions={swimlanePositions()}
 							onChange={handleDiagramChange}
 							onViewportChange={handleViewportChange}
 							onModelerReady={handleModelerReady}

@@ -17,7 +17,7 @@ export interface TableRow {
 	id: string; // Unique node ID
 	type: BPMNNodeType; // Type of BPMN node
 	label: string; // Descriptive label
-	responsable?: string; // Person or role responsible for this activity
+	responsables: string[]; // People or roles responsible for this activity (first is primary)
 	suppliers: string[]; // Suppliers or sources of the activity
 	inputs: string[]; // Inputs required for the activity
 	outputs: string[]; // Outputs produced by the activity

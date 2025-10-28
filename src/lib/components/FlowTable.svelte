@@ -3,7 +3,6 @@
 	import { NODE_TYPE_ICONS } from '$lib/types/flow-table.types';
 	import NodeTypeSelect from './NodeTypeSelect.svelte';
 	import ConnectionsCell from './ConnectionsCell.svelte';
-	import ResponsableAutocomplete from './ResponsableAutocomplete.svelte';
 	import MultiValueCell from './MultiValueCell.svelte';
 	import { flip } from 'svelte/animate';
 	import { fade } from 'svelte/transition';
@@ -27,7 +26,7 @@
 			id: generateId('node', nextRowNumber),
 			type: 'task',
 			label: '',
-			responsable: '',
+			responsables: [],
 			suppliers: [],
 			inputs: [],
 			outputs: [],
@@ -179,10 +178,14 @@
 	// Get all available node IDs for connection dropdowns
 	let availableNodeIds = $derived(rows.map((r) => ({ id: r.id, label: r.label })));
 
-	// Get unique responsables for autocomplete
+	// Get unique responsables (flatten all responsables arrays)
 	let availableResponsables = $derived(
 		Array.from(
-			new Set(rows.map((r) => r.responsable).filter((r): r is string => !!r && r.trim() !== ''))
+			new Set(
+				rows
+					.flatMap((r) => r.responsables)
+					.filter((r): r is string => !!r && r.trim() !== '')
+			)
 		)
 	);
 
@@ -213,7 +216,7 @@
 					<th class="col-id">ID</th>
 					<th class="col-type">Tipo</th>
 					<th class="col-label">Nombre</th>
-					<th class="col-responsable">Responsable</th>
+					<th class="col-responsable">Responsables</th>
 					<th class="col-supplier">Proveedores</th>
 					<th class="col-input">Inputs</th>
 					<th class="col-output">Outputs</th>
@@ -267,12 +270,12 @@
 							/>
 						</td>
 
-						<!-- Responsable -->
+						<!-- Responsables -->
 						<td class="col-responsable">
-							<ResponsableAutocomplete
-								value={row.responsable || ''}
-								{availableResponsables}
-								onChange={(newValue) => updateRow(row.rowNumber, 'responsable', newValue)}
+							<MultiValueCell
+								values={row.responsables}
+								placeholder="Responsable"
+								onChange={(newValues) => updateRow(row.rowNumber, 'responsables', newValues)}
 							/>
 						</td>
 

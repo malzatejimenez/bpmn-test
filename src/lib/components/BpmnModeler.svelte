@@ -11,6 +11,8 @@
 		xml?: string;
 		class?: string;
 		editable?: boolean;
+		secondaryResponsables?: Record<string, string[]>; // Map of elementId -> array of secondary responsables
+		swimlanePositions?: Record<string, number>; // Map of responsable -> xPosition
 		onChange?: (xml: string) => void;
 		onViewportChange?: (viewbox: any) => void;
 		onModelerReady?: (modelerInstance: any) => void;
@@ -27,6 +29,8 @@
 		xml,
 		class: className,
 		editable = true,
+		secondaryResponsables = {},
+		swimlanePositions = {},
 		onChange,
 		onViewportChange,
 		onModelerReady,
@@ -215,6 +219,101 @@
 	}
 
 	/**
+	 * Draw dashed lines from elements to secondary responsables swimlanes
+	 */
+	function drawSecondaryResponsablesLines() {
+		if (
+			!modeler ||
+			!secondaryResponsables ||
+			Object.keys(secondaryResponsables).length === 0 ||
+			!swimlanePositions ||
+			Object.keys(swimlanePositions).length === 0
+		)
+			return;
+
+		try {
+			const canvas = modeler.get('canvas');
+			const elementRegistry = modeler.get('elementRegistry');
+			const graphicsFactory = modeler.get('graphicsFactory');
+
+			// Get the root SVG layer
+			const svgRoot = canvas.getDefaultLayer();
+
+			// Remove existing secondary lines group if exists
+			const existingGroup = svgRoot.querySelector('#secondary-responsables-lines');
+			if (existingGroup) {
+				existingGroup.remove();
+			}
+
+			// Create SVG group for all secondary responsables lines
+			const linesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+			linesGroup.id = 'secondary-responsables-lines';
+			linesGroup.setAttribute('class', 'secondary-responsables-layer');
+			svgRoot.appendChild(linesGroup);
+
+			// Draw lines for each element with secondary responsables
+			const swimlaneWidth = 300; // Same as in +page.svelte
+			Object.entries(secondaryResponsables).forEach(([elementId, responsables]) => {
+				if (!responsables || responsables.length === 0) return;
+
+				const element = elementRegistry.get(elementId);
+				if (!element) return;
+
+				// Get element center position
+				const elementX = element.x + element.width / 2;
+				const elementY = element.y + element.height / 2;
+
+				// Draw line to each secondary responsable swimlane
+				responsables.forEach((responsable) => {
+					const swimlaneLeftEdge = swimlanePositions[responsable];
+					if (swimlaneLeftEdge === undefined) return;
+
+					// Calculate center of swimlane column
+					const swimlaneCenterX = swimlaneLeftEdge + swimlaneWidth / 2;
+
+					// Create dashed line from element to swimlane center
+					const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+					line.setAttribute('x1', String(elementX));
+					line.setAttribute('y1', String(elementY));
+					line.setAttribute('x2', String(swimlaneCenterX));
+					line.setAttribute('y2', String(elementY));
+					line.setAttribute('stroke', '#6366f1');
+					line.setAttribute('stroke-width', '2');
+					line.setAttribute('stroke-dasharray', '5,5');
+					line.setAttribute('opacity', '0.6');
+					line.setAttribute('pointer-events', 'none');
+					linesGroup.appendChild(line);
+
+					// Create ghost/phantom marker at swimlane center
+					const markerWidth = 40;
+					const markerHeight = 30;
+					const marker = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+					marker.setAttribute('x', String(swimlaneCenterX - markerWidth / 2));
+					marker.setAttribute('y', String(elementY - markerHeight / 2));
+					marker.setAttribute('width', String(markerWidth));
+					marker.setAttribute('height', String(markerHeight));
+					marker.setAttribute('fill', 'none');
+					marker.setAttribute('stroke', '#6366f1');
+					marker.setAttribute('stroke-width', '2');
+					marker.setAttribute('stroke-dasharray', '3,3');
+					marker.setAttribute('rx', '4');
+					marker.setAttribute('opacity', '0.5');
+					marker.setAttribute('pointer-events', 'none');
+
+					// Add tooltip title
+					const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+					title.textContent = `Colaborador: ${responsable}`;
+					marker.appendChild(title);
+
+					linesGroup.appendChild(marker);
+				});
+			});
+		} catch (err) {
+			console.warn('Error drawing secondary responsables lines:', err);
+		}
+	}
+
+	/**
 	 * Initialize BPMN modeler or viewer
 	 */
 	async function initModeler() {
@@ -251,6 +350,9 @@
 
 			// Setup read-only mode after diagram is loaded
 			setupReadOnlyMode();
+
+			// Draw secondary responsables lines
+			drawSecondaryResponsablesLines();
 
 			// Notify parent that modeler is ready
 			if (onModelerReady && modeler) {
@@ -322,6 +424,9 @@
 			// Fit viewport to diagram
 			const canvas = modeler.get('canvas');
 			canvas.zoom('fit-viewport');
+
+			// Draw secondary responsables lines after diagram is loaded
+			drawSecondaryResponsablesLines();
 
 			// Save the loaded XML via onChange callback (for persistence)
 			if (onChange) {
@@ -407,6 +512,13 @@
 		const canvas = modeler.get('canvas');
 		canvas.zoom(level);
 	}
+
+	// Reactive effect to update lines when secondaryResponsables or swimlanePositions changes
+	$effect(() => {
+		if (modeler && secondaryResponsables && swimlanePositions) {
+			drawSecondaryResponsablesLines();
+		}
+	});
 
 	// Lifecycle
 	onMount(() => {
