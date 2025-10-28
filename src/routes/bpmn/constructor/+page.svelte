@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import BpmnModeler from '$lib/components/BpmnModeler.svelte';
 	import FlowTable from '$lib/components/FlowTable.svelte';
-	import ViewSwitcher from '$lib/components/ViewSwitcher.svelte';
+	import FloatingViewSwitcher from '$lib/components/FloatingViewSwitcher.svelte';
 	import SwimlaneHeaders from '$lib/components/SwimlaneHeaders.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import type { TableRow } from '$lib/types/flow-table.types';
@@ -452,13 +452,8 @@
 </script>
 
 <div class="constructor-container">
-	<header class="page-header">
-		<h1>🏗️ Constructor de Flujos BPMN</h1>
-		<p class="subtitle">Crea flujos BPMN usando una tabla simple - sin código</p>
-
-		<!-- View Mode Switcher -->
-		<ViewSwitcher bind:viewMode />
-	</header>
+	<!-- Floating View Switcher - always visible -->
+	<FloatingViewSwitcher bind:viewMode />
 
 	<div
 		class="content-layout"
@@ -553,32 +548,14 @@
 	.constructor-container {
 		min-height: 100vh;
 		background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
-		padding: 2rem;
-	}
-
-	.page-header {
-		text-align: center;
-		margin-bottom: 2rem;
-	}
-
-	.page-header h1 {
-		font-size: 2.5rem;
-		font-weight: 700;
-		color: #1e293b;
-		margin: 0;
-	}
-
-	.subtitle {
-		margin-top: 0.5rem;
-		color: #64748b;
-		font-size: 1.1rem;
+		padding: 1rem;
 	}
 
 	.content-layout {
 		position: relative;
 		display: grid;
-		gap: 2rem;
-		height: calc(100vh - 250px);
+		gap: 1rem;
+		height: calc(100vh - 2rem);
 		transition: grid-template-columns 0.3s ease;
 	}
 
@@ -625,14 +602,14 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 1rem 1.5rem;
+		padding: 0.75rem 1rem;
 		border-bottom: 1px solid #e2e8f0;
 		background: #f8fafc;
 		flex-shrink: 0;
 	}
 
 	.panel-header h2 {
-		font-size: 1.25rem;
+		font-size: 1rem;
 		font-weight: 600;
 		color: #1e293b;
 		margin: 0;
