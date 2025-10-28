@@ -108,13 +108,27 @@
 			}
 		});
 
+		// Extract ALL unique responsables (primary + secondary)
+		const allResponsablesSet = new Set<string>();
+		tableRows.forEach((row) => {
+			if (row.responsables && row.responsables.length > 0) {
+				row.responsables.forEach((resp) => {
+					if (resp && resp.trim() !== '') {
+						allResponsablesSet.add(resp);
+					}
+				});
+			}
+		});
+		const allResponsables = Array.from(allResponsablesSet);
+
 		const flowDef: BPMNFlowDefinition = {
 			id: 'Process_Constructor',
 			name: 'Flujo desde Constructor',
 			nodes,
 			connections,
 			annotations,
-			associations
+			associations,
+			allResponsables
 		};
 
 		// Apply auto-layout to generate positions

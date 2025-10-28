@@ -89,6 +89,7 @@ export interface BPMNFlowDefinition {
 	connections: BPMNConnection[];
 	annotations?: BPMNAnnotation[];
 	associations?: BPMNAssociation[];
+	allResponsables?: string[]; // All responsables (primary + secondary) for proper column spacing
 	metadata?: {
 		version?: string;
 		author?: string;

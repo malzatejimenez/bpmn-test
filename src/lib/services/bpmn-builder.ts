@@ -483,13 +483,13 @@ export class BpmnBuilder {
 				BPMN_DEFAULT_DIMENSIONS[sourceNode.type] || { width: 100, height: 80 };
 			const targetDims = targetAnnotation.dimensions || { width: 160, height: 80 };
 
-			// From source bottom-right corner
+			// From source right edge, vertically centered
 			const sourceX = sourcePos.x + (sourceDims.width ?? 100);
-			const sourceY = sourcePos.y + (sourceDims.height ?? 80);
+			const sourceY = sourcePos.y + (sourceDims.height ?? 80) / 2;
 
-			// To target top-left corner
+			// To target left edge, vertically centered
 			const targetX = targetPos.x;
-			const targetY = targetPos.y + 5;
+			const targetY = targetPos.y + (targetDims.height ?? 80) / 2;
 
 			waypoints.push(
 				this.moddle.create('dc:Point', { x: sourceX, y: sourceY })
@@ -520,24 +520,26 @@ export class BpmnBuilder {
 		const startX = 100;
 		const startY = 100;
 
-		// Group nodes by responsable (vertical swimlanes/columns)
-		const responsableGroups = new Map<string, BPMNNode[]>();
+		// Use allResponsables if provided (includes secondary responsables), otherwise fall back to node responsables
+		let allResponsables: string[];
+		if (layouted.allResponsables && layouted.allResponsables.length > 0) {
+			allResponsables = layouted.allResponsables;
+		} else {
+			// Fallback: extract from nodes only (old behavior)
+			const responsableSet = new Set<string>();
+			layouted.nodes.forEach((node) => {
+				const responsable =
+					node.responsable && node.responsable.trim() !== '' ? node.responsable : defaultResponsable;
+				responsableSet.add(responsable);
+			});
+			allResponsables = Array.from(responsableSet);
+		}
 
-		layouted.nodes.forEach((node) => {
-			const responsable =
-				node.responsable && node.responsable.trim() !== '' ? node.responsable : defaultResponsable;
-
-			if (!responsableGroups.has(responsable)) {
-				responsableGroups.set(responsable, []);
-			}
-			responsableGroups.get(responsable)!.push(node);
-		});
-
-		// Calculate X positions for each responsable (columns)
+		// Calculate X positions for ALL responsables (including secondary ones)
 		const responsableXPositions = new Map<string, number>();
 		let currentXBase = startX;
 
-		Array.from(responsableGroups.keys()).forEach((responsable) => {
+		allResponsables.forEach((responsable) => {
 			// Center the activity horizontally in the column
 			const xPos = currentXBase + swimlaneWidth / 2;
 			responsableXPositions.set(responsable, xPos);
@@ -560,7 +562,8 @@ export class BpmnBuilder {
 			node.position = { x, y };
 		});
 
-		// Position annotations below and to the right of their associated nodes
+		// Position annotations to the right of their associated nodes within the swimlane
+		// This keeps them close while avoiding interference with flows and secondary responsable lines
 		if (layouted.annotations && layouted.associations) {
 			layouted.annotations.forEach((annotation) => {
 				// Find the association that targets this annotation
@@ -572,12 +575,20 @@ export class BpmnBuilder {
 						const sourceDims = sourceNode.dimensions ||
 							BPMN_DEFAULT_DIMENSIONS[sourceNode.type] || { width: 100, height: 80 };
 
-						// Position annotation below and to the right
+						const annotationWidth = 160;
+						const annotationHeight = 80;
+
+						// Position to the right of the node with generous margin
+						// This avoids interference with secondary responsable lines (which are horizontal at node center)
+						const horizontalMargin = 50; // Space between node and annotation
+						const verticalOffset = 30; // Distance below the node center
+
+						// Position annotation to the right and below the node
 						annotation.position = {
-							x: sourceNode.position.x + (sourceDims.width ?? 100) / 2 + 40,
-							y: sourceNode.position.y + (sourceDims.height ?? 80) + 20
+							x: sourceNode.position.x + (sourceDims.width ?? 100) + horizontalMargin,
+							y: sourceNode.position.y + (sourceDims.height ?? 80) / 2 + verticalOffset
 						};
-						annotation.dimensions = { width: 160, height: 80 };
+						annotation.dimensions = { width: annotationWidth, height: annotationHeight };
 					}
 				}
 			});
