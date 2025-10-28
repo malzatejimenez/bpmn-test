@@ -397,6 +397,17 @@
 		return map;
 	});
 
+	// Calculate outputs map for visualization
+	let outputsMap = $derived(() => {
+		const map: Record<string, string[]> = {};
+		rows.forEach((row) => {
+			if (row.outputs && row.outputs.length > 0) {
+				map[row.id] = row.outputs;
+			}
+		});
+		return map;
+	});
+
 	// Calculate swimlanes based on responsables (vertical columns)
 	let swimlanes = $derived(() => {
 		if (!rows || rows.length === 0) return [];
@@ -637,6 +648,7 @@
 							editable={modoEdicion}
 							secondaryResponsables={secondaryResponsablesMap()}
 							swimlanePositions={swimlanePositions()}
+							outputs={outputsMap()}
 							onChange={handleDiagramChange}
 							onViewportChange={handleViewportChange}
 							onModelerReady={handleModelerReady}
